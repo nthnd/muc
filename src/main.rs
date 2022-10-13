@@ -1,30 +1,27 @@
 use std::{collections::HashMap, env, fs};
 
 fn main() {
-    let args = env::args().skip(1).collect::<Vec<String>>();
+    // if supplied with a number n as an argument, show the top n commands
+    // otherwise show all
+    let count = env::args()
+        .collect::<Vec<String>>()
+        .get(1)
+        .map(|arg| arg.parse::<usize>().expect("Bad args"));
 
-    let arg = args.get(0);
+    // get the commands
+    let commands = get_commands(&get_histfile_path());
 
-    let count = if arg.is_none() {
-        None
-    } else {
-        Some(arg.unwrap().parse::<usize>().expect("bad args"))
-    };
-
-    let sorted_f = get_commands("/home/nate/.histfile");
-    let largest_num = sorted_f.get(0).unwrap().1.to_string().len();
-    let largest_freq = sorted_f.get(0).unwrap().0.to_string().len();
-
-    for (index, command) in sorted_f.iter().enumerate() {
+    //print each command with its rank and frequency
+    let (longest_num, longest_freq) = commands.first().unwrap();
+    for (index, command) in commands.iter().enumerate() {
         println!(
             "{:indent_n$}: [{:indent_f$}] -> {}",
             index + 1,
             command.1,
             command.0,
-            indent_n = largest_num,
-            indent_f = largest_freq + 2,
+            indent_n = longest_num.to_string().len(),
+            indent_f = longest_freq.to_string().len(),
         );
-
         if let Some(x) = count {
             if index == x - 1 {
                 break;
@@ -33,17 +30,33 @@ fn main() {
     }
 }
 
-fn get_commands(path: &str) -> Vec<(String, usize)> {
-    let contents = fs::read_to_string(path).expect("couldn't read file");
+fn get_histfile_path() -> String {
+    // get the LOGNAME environment variable
+    let login = env::var("LOGNAME").expect("couldnt find login name");
 
-    let lines: Vec<String> = contents
+    // determine the histfile from the SHELL environment variable
+    let histfile_path = match env::var("SHELL")
+        .expect("couldnt find shell")
+        .split('/')
+        .last()
+        .unwrap()
+    {
+        "zsh" => ".histfile",
+        "bash" => ".bash_history",
+        _ => ".alskdj",
+    };
+
+    //return the full path to the histfile
+    format!("/home/{login}/{histfile_path}")
+}
+
+fn get_commands(path: &str) -> Vec<(String, usize)> {
+    // iterate through the histfile's lines and get the commands
+    let commands = fs::read_to_string(path)
+        .expect("couldn't read file")
         .split(&['\n', '|', '&', ';'])
         .map(|x| x.to_owned())
         .filter(|x| !x.is_empty())
-        .collect::<Vec<String>>();
-
-    let commands: Vec<String> = lines
-        .iter()
         .map(|x| {
             (*x.split_whitespace()
                 .map(|x| x.to_owned())
@@ -54,19 +67,18 @@ fn get_commands(path: &str) -> Vec<(String, usize)> {
         })
         .collect::<Vec<String>>();
 
+    // count how many times the commands appear
     let mut frequencies: HashMap<String, usize> = HashMap::new();
-
     commands
         .iter()
         .for_each(|x| *frequencies.entry((*x).clone()).or_default() += 1);
 
-    let mut sorted_f = frequencies.into_iter().collect::<Vec<(String, usize)>>();
-    sorted_f.sort_by(|a, b| a.1.cmp(&b.1));
-    sorted_f = sorted_f
+    // sort the commands by frequency and return
+    let mut sorted_frequencies = frequencies.into_iter().collect::<Vec<(String, usize)>>();
+    sorted_frequencies.sort_by(|a, b| a.1.cmp(&b.1));
+    sorted_frequencies
         .into_iter()
         .filter(|x| !x.0.starts_with("./"))
         .rev()
-        .collect();
-
-    sorted_f
+        .collect()
 }
