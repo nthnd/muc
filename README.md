@@ -1,7 +1,7 @@
 # muc
 Rank your most used commands by usage  
 
-![2022-10-13-14:44:11-screenshot](https://user-images.githubusercontent.com/96471299/195587675-9ba18847-195b-4113-80e3-4a5aad7d5650.png)
+![2022-12-01-08:57:37-screenshot](https://user-images.githubusercontent.com/96471299/204977307-6dfdea1b-f06a-4f85-8261-ce6672fea8ed.png)
 
 ## Dependencies
 * Rust (Cargo)
