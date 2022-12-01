@@ -38,6 +38,7 @@ fn get_histfile_path() -> String {
     {
         "zsh" => ".histfile",
         "bash" => ".bash_history",
+        "fish" => ".local/share/fish/fish_history",
         _ => ".idek-Man",
     };
 
@@ -45,20 +46,50 @@ fn get_histfile_path() -> String {
 }
 
 fn get_commands(path: &str) -> Vec<(String, usize)> {
-    let commands = fs::read_to_string(path)
-        .expect("couldn't read file")
-        .split(&['\n', '|', '&', ';'])
-        .map(|x| x.to_owned())
-        .filter(|x| !x.is_empty())
-        .map(|x| {
-            x.split_whitespace()
-                .map(|x| x.to_owned())
-                .collect::<Vec<String>>()
-                .first()
-                .unwrap()
-                .clone()
-        })
-        .collect::<Vec<String>>();
+    let _commands = fs::read_to_string(path)
+        .expect("couldn't read file");
+
+    let commands = match env::var("SHELL")
+        .expect("couldnt find shell")
+        .split('/')
+        .last()
+        .unwrap()
+    {
+        "fish" => {
+          _commands.split(&['\n', '|', '&', ';'])
+            .map(|x| x.to_owned())
+            .filter(|x| !x.is_empty())
+            .filter(|x| x.starts_with("- cmd: "))
+            .map(|x| {
+                match x.split_once("- cmd: ") {
+                  Some((_, val)) => {
+                    val.split_whitespace()
+                      .map(|x| x.to_owned())
+                      .collect::<Vec<String>>()
+                      .first()
+                      .unwrap()
+                      .clone()
+                  },
+                  None => { panic!("Could not find commands in fish history") },
+                }
+            })
+            .collect::<Vec<String>>()
+        },
+        _ => {
+          _commands.split(&['\n', '|', '&', ';'])
+            .map(|x| x.to_owned())
+            .filter(|x| !x.is_empty())
+            .map(|x| {
+                x.split_whitespace()
+                    .map(|x| x.to_owned())
+                    .collect::<Vec<String>>()
+                    .first()
+                    .unwrap()
+                    .clone()
+            })
+            .collect::<Vec<String>>()
+        },
+    };
 
     let mut frequencies: HashMap<String, usize> = HashMap::new();
     commands
