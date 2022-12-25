@@ -15,3 +15,8 @@ Running
 muc --file $HISTFILE --count 10 # Bash or Zsh
 muc --file $HISTFILE --count 10 --prefix="- cmd: " # Fish
 ```
+
+### TODO
+- [ ] Colors
+- [ ] Customizable bar
+- [ ] More command line options
