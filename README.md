@@ -22,3 +22,4 @@ muc --file $HISTFILE --count 10 --prefix="- cmd: " # Fish
 - [ ] Colors
 - [ ] Customizable bar
 - [ ] More command line options
+- [ ] Make it not crash when it finds emojis
