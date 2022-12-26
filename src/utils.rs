@@ -3,7 +3,7 @@ use utf8_slice::slice;
 
 use aecir::style::{Color, ColorName, Format};
 
-pub fn display_sorted(data: HashMap<String, usize>, count: Option<usize>) {
+pub fn display_sorted(data: HashMap<String, usize>, count: Option<usize>, pretty: bool) {
     let mut sorted: Vec<(String, usize)> = data.into_iter().collect::<Vec<(String, usize)>>();
     sorted.sort_by(|a, b| b.1.cmp(&a.1));
 
@@ -24,6 +24,7 @@ pub fn display_sorted(data: HashMap<String, usize>, count: Option<usize>) {
             item.1 * 100 / total,
             max,
             command_indentation,
+            pretty,
         );
     }
 }
@@ -34,24 +35,29 @@ pub fn print_command(
     percentage: usize,
     max: usize,
     command_indentation: usize,
+    pretty: bool,
 ) {
     let bar: String = format!(
         "{: <10}",
         "▮".repeat(((invocations as f32 / max as f32) * 10.) as usize)
     );
-    println!(
-        "[{red}{bar_first: <2}{yellow}{bar_second: <3}{green}{bar_third: <5}{reset}] \
-        {percentage: >2}% {gray}{invocations:command_indentation$}{reset}\
-        {bold} {command} {reset_style}",
-        red = Color::Fg(ColorName::Red),
-        bar_first = slice(&bar, 0, 2),
-        yellow = Color::Fg(ColorName::Yellow),
-        bar_second = slice(&bar, 2, 5),
-        green = Color::Fg(ColorName::Green),
-        bar_third = slice(&bar, 5, 10),
-        reset = aecir::style::reset_colors(),
-        gray = Color::Fg(ColorName::LightBlack),
-        bold = Format::Bold,
-        reset_style = aecir::style::reset_all(),
-    );
+    if pretty {
+        println!(
+            "[{red}{bar_first: <2}{yellow}{bar_second: <3}{green}{bar_third: <5}{reset}] \
+            {percentage: >2}% {gray}{invocations:command_indentation$}{reset}\
+            {bold} {command} {reset_style}",
+            red = Color::Fg(ColorName::Red),
+            bar_first = slice(&bar, 0, 2),
+            yellow = Color::Fg(ColorName::Yellow),
+            bar_second = slice(&bar, 2, 5),
+            green = Color::Fg(ColorName::Green),
+            bar_third = slice(&bar, 5, 10),
+            reset = aecir::style::reset_colors(),
+            gray = Color::Fg(ColorName::LightBlack),
+            bold = Format::Bold,
+            reset_style = aecir::style::reset_all(),
+        );
+    } else {
+        println!("[{bar}] {percentage: >2}% {invocations:command_indentation$} {command}",);
+    }
 }

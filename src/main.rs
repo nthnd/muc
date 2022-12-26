@@ -13,17 +13,21 @@ struct Args {
     #[arg(short, long)]
     file: String,
 
-    /// Specify if the file contains any prefixes
-    #[arg(short, long)]
+    /// Specify a prefix for formatting lines
+    #[arg(long)]
     prefix: Option<String>,
 
-    /// How many of the top commands to show
+    /// Display top n commands
     #[arg(short, long)]
     count: Option<usize>,
+
+    /// Make output pretty 
+    #[arg(short, long, default_value_t=false)]
+    pretty:  bool
 }
 
 fn main() {
     let args = Args::parse();
     let commands = hist_file::parse_contents(hist_file::get_contents(args.file), args.prefix);
-    utils::display_sorted(commands, args.count);
+    utils::display_sorted(commands, args.count, args.pretty);
 }

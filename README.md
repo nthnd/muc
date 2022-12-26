@@ -12,8 +12,8 @@ cargo install --git=https://github.com/nate-sys/muc
 
 Running
 ```sh
-muc --file $HISTFILE --count 10 # Bash or Zsh
-muc --file $HISTFILE --count 10 --prefix="- cmd: " # Fish
+muc --file $HISTFILE --count 10 --pretty                    # Bash / Zsh
+muc --file $HISTFILE --count 10 --prefix="- cmd: " --pretty # Fish
 ```
 
 ### TODO
