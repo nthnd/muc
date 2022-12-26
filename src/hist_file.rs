@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::io::Read;
 
-pub fn get_contents(path: String) -> String {
+pub fn get_contents(path: &str) -> String {
     let mut histfile_buffer = std::fs::File::open(path).unwrap();
     let mut contents = String::new();
     histfile_buffer.read_to_string(&mut contents).unwrap();
@@ -9,7 +9,7 @@ pub fn get_contents(path: String) -> String {
     contents
 }
 
-pub fn parse_contents(contents: String, prefix: Option<String>) -> HashMap<String, usize> {
+pub fn parse_contents(contents: String, prefix: &Option<String>) -> HashMap<String, usize> {
     let commands: Vec<&str> = contents
         .split(&['\n', '&', '|', ';'])
         .filter(|x| !x.is_empty())

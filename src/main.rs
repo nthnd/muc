@@ -8,7 +8,7 @@ use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
-struct Args {
+pub struct Args {
     /// Path to the file where history is stored
     #[arg(short, long)]
     file: String,
@@ -21,13 +21,25 @@ struct Args {
     #[arg(short, long)]
     count: Option<usize>,
 
-    /// Make output pretty 
-    #[arg(short, long, default_value_t=false)]
-    pretty:  bool
+    /// Make output pretty
+    #[arg(short, long, default_value_t = false)]
+    pretty: bool,
+
+    /// Bar opening character
+    #[arg(long, default_value_t = '[')]
+    bar_open: char,
+
+    /// Bar closing character
+    #[arg(long, default_value_t = ']')]
+    bar_close: char,
+
+    /// Bar character
+    #[arg(long, default_value_t = '▮')]
+    bar: char,
 }
 
 fn main() {
     let args = Args::parse();
-    let commands = hist_file::parse_contents(hist_file::get_contents(args.file), args.prefix);
-    utils::display_sorted(commands, args.count, args.pretty);
+    let commands = hist_file::parse_contents(hist_file::get_contents(&args.file), &args.prefix);
+    utils::display_sorted(commands, args);
 }

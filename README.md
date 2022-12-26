@@ -14,10 +14,16 @@ Running
 ```sh
 muc --file $HISTFILE --count 10 --pretty                    # Bash / Zsh
 muc --file $HISTFILE --count 10 --prefix="- cmd: " --pretty # Fish
+
+muc --file $HISTFILE\
+        --count 10\
+        --pretty\
+        --bar '*'\
+        --bar-open '('\
+        --bar-close ')'                                     # (******    ) 
 ```
 
 ### TODO
 - [X] Colors
-- [ ] Customizable bar
+- [X] Customizable bar
 - [ ] More command line options
-~~ Make it not crash when it finds emojis ~~ (fixed?)

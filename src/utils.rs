@@ -1,9 +1,10 @@
 use std::{collections::HashMap, usize};
 use utf8_slice::slice;
 
+use crate::Args;
 use aecir::style::{Color, ColorName, Format};
 
-pub fn display_sorted(data: HashMap<String, usize>, count: Option<usize>, pretty: bool) {
+pub fn display_sorted(data: HashMap<String, usize>, args: Args) {
     let mut sorted: Vec<(String, usize)> = data.into_iter().collect::<Vec<(String, usize)>>();
     sorted.sort_by(|a, b| b.1.cmp(&a.1));
 
@@ -11,7 +12,7 @@ pub fn display_sorted(data: HashMap<String, usize>, count: Option<usize>, pretty
     let max = sorted[0].1;
     let command_indentation = max.to_string().len();
 
-    let limited_array = if let Some(limit) = count {
+    let limited_array = if let Some(limit) = args.count {
         &sorted[0..limit]
     } else {
         &sorted
@@ -24,7 +25,7 @@ pub fn display_sorted(data: HashMap<String, usize>, count: Option<usize>, pretty
             item.1 * 100 / total,
             max,
             command_indentation,
-            pretty,
+            &args,
         );
     }
 }
@@ -35,17 +36,20 @@ pub fn print_command(
     percentage: usize,
     max: usize,
     command_indentation: usize,
-    pretty: bool,
+    args: &Args,
 ) {
     let bar: String = format!(
         "{: <10}",
-        "▮".repeat(((invocations as f32 / max as f32) * 10.) as usize)
+        args.bar
+            .to_string()
+            .repeat(((invocations as f32 / max as f32) * 10.) as usize)
     );
-    if pretty {
+    if args.pretty {
         println!(
-            "[{red}{bar_first: <2}{yellow}{bar_second: <3}{green}{bar_third: <5}{reset}] \
+            "{opening_char}{red}{bar_first: <2}{yellow}{bar_second: <3}{green}{bar_third: <5}{reset}{closing_char} \
             {percentage: >2}% {gray}{invocations:command_indentation$}{reset}\
             {bold} {command} {reset_style}",
+            opening_char = args.bar_open,
             red = Color::Fg(ColorName::Red),
             bar_first = slice(&bar, 0, 2),
             yellow = Color::Fg(ColorName::Yellow),
@@ -53,11 +57,16 @@ pub fn print_command(
             green = Color::Fg(ColorName::Green),
             bar_third = slice(&bar, 5, 10),
             reset = aecir::style::reset_colors(),
+            closing_char = args.bar_close,
             gray = Color::Fg(ColorName::LightBlack),
             bold = Format::Bold,
             reset_style = aecir::style::reset_all(),
         );
     } else {
-        println!("[{bar}] {percentage: >2}% {invocations:command_indentation$} {command}",);
+        println!(
+            "{opening_char}{bar}{closing_char}{percentage: >2}% {invocations:command_indentation$} {command}",
+            opening_char = args.bar_open,
+            closing_char = args.bar_close,
+        );
     }
 }
