@@ -7,9 +7,7 @@ Visualize your most used commands
 
 Installing
 ```sh 
-git clone https://github.com/nate-sys/muc.git
-cd muc
-cargo build -r && cargo install --path .
+cargo install --git=https://github.com/nate-sys/muc
 ```
 
 Running
@@ -19,7 +17,7 @@ muc --file $HISTFILE --count 10 --prefix="- cmd: " # Fish
 ```
 
 ### TODO
-- [ ] Colors
+- [X] Colors
 - [ ] Customizable bar
 - [ ] More command line options
 - [ ] Make it not crash when it finds emojis
