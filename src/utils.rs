@@ -1,4 +1,7 @@
 use std::{collections::HashMap, usize};
+use utf8_slice::slice;
+
+use aecir::style::{Color, ColorName, Format};
 
 pub fn display_sorted(data: HashMap<String, usize>, count: Option<usize>) {
     let mut sorted: Vec<(String, usize)> = data.into_iter().collect::<Vec<(String, usize)>>();
@@ -23,7 +26,6 @@ pub fn display_sorted(data: HashMap<String, usize>, count: Option<usize>) {
             command_indentation,
         );
     }
-
 }
 
 pub fn print_command(
@@ -33,11 +35,23 @@ pub fn print_command(
     max: usize,
     command_indentation: usize,
 ) {
+    let bar: String = format!(
+        "{: <10}",
+        "▮".repeat(((invocations as f32 / max as f32) * 10.) as usize)
+    );
     println!(
-        "[{: <10}] {: <2}% {:command_indentation$} = {}",
-        "▮".repeat(((invocations as f32 / max as f32) * 10.) as usize),
-        percentage,
-        invocations,
-        command
+        "[{red}{bar_first: <2}{yellow}{bar_second: <3}{green}{bar_third: <5}{reset}] \
+        {percentage: >2}% {gray}{invocations:command_indentation$}{reset}\
+        {bold} {command} {reset_style}",
+        red = Color::Fg(ColorName::Red),
+        bar_first = slice(&bar, 0, 2),
+        yellow = Color::Fg(ColorName::Yellow),
+        bar_second = slice(&bar, 2, 5),
+        green = Color::Fg(ColorName::Green),
+        bar_third = slice(&bar, 5, 10),
+        reset = aecir::style::reset_colors(),
+        gray = Color::Fg(ColorName::LightBlack),
+        bold = Format::Bold,
+        reset_style = aecir::style::reset_all(),
     );
 }
