@@ -1,4 +1,4 @@
-use std::{collections::HashMap, usize};
+use std::{collections::HashMap, usize, cmp::min};
 use utf8_slice::slice;
 
 use crate::Args;
@@ -13,7 +13,7 @@ pub fn display_sorted(data: HashMap<String, usize>, args: Args) {
     let command_indentation = max.to_string().len();
 
     let (list, limitted) = if let Some(limit) = args.count {
-        (&sorted[0..limit], true)
+        (&sorted[0..min(limit, sorted.len())], true)
     } else {
         (&sorted[0..], false)
     };
