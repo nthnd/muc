@@ -3,8 +3,18 @@ use aecir::style::{Color, ColorName, Format};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
 
+fn print_warning(warning: &str) {
+    println!(
+        "{yellow}{bold}[Error]{reset} {warning}",
+        yellow = Color::Fg(ColorName::Yellow),
+        bold = Format::Bold,
+        reset = aecir::style::reset_all()
+    );
+}
+
 pub fn get_contents(args: &Args) -> String {
-    let histfile_buffer = std::fs::File::open(&args.file).unwrap();
+    let Ok(histfile_buffer) = std::fs::File::open(&args.file) else { panic!("Please specify a valid histfile")};
+
     let reader = BufReader::new(histfile_buffer);
     let mut contents = String::new();
 
@@ -14,12 +24,7 @@ pub fn get_contents(args: &Args) -> String {
             contents.push_str("\n");
         } else {
             if args.debug {
-                println!(
-                    "{yellow}{bold}[Error]{reset}Could not read line : {index} = {line:#?}",
-                    yellow = Color::Fg(ColorName::Yellow),
-                    bold = Format::Bold, 
-                    reset = aecir::style::reset_all()
-                );
+                print_warning(&format!("Could not read line : {index} = {line:#?}"));
             }
         }
     }
@@ -27,14 +32,21 @@ pub fn get_contents(args: &Args) -> String {
     contents
 }
 
-pub fn parse_contents(contents: String, prefix: &Option<String>) -> HashMap<String, usize> {
+pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
     let commands: Vec<&str> = contents
         .split(&['\n', '&', '|', ';'])
         .filter(|x| !x.is_empty())
         .into_iter()
-        .map(|command| command.split_whitespace().next().unwrap())
         .map(|command| {
-            if let Some(pfx) = &prefix {
+            command.split_whitespace().next().unwrap_or_else(|| {
+                if args.debug {
+                    print_warning("Error while parsing command");
+                }
+                "".into()
+            })
+        })
+        .map(|command| {
+            if let Some(pfx) = &args.prefix {
                 if command.starts_with(pfx) {
                     &command[0..(pfx.len())]
                 } else {

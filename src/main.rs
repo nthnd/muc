@@ -41,6 +41,6 @@ pub struct Args {
 
 fn main() {
     let args = Args::parse();
-    let commands = hist_file::parse_contents(hist_file::get_contents(&args), &args.prefix);
+    let commands = hist_file::parse_contents(hist_file::get_contents(&args), &args);
     utils::display_sorted(commands, args);
 }
