@@ -21,11 +21,9 @@ pub fn get_contents(args: &Args) -> String {
     for (index, line) in reader.lines().enumerate() {
         if let Ok(line) = line {
             contents.push_str(&line);
-            contents.push_str("\n");
-        } else {
-            if args.debug {
-                print_warning(&format!("Could not read line : {index} = {line:#?}"));
-            }
+            contents.push('\n');
+        } else if args.debug {
+            print_warning(&format!("Could not read line : {index} = {line:#?}"));
         }
     }
 
@@ -42,19 +40,12 @@ pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
                 if args.debug {
                     print_warning("Error while parsing command");
                 }
-                "".into()
+                ""
             })
         })
-        .map(|command| {
-            if let Some(pfx) = &args.prefix {
-                if command.starts_with(pfx) {
-                    &command[0..(pfx.len())]
-                } else {
-                    command
-                }
-            } else {
-                command
-            }
+        .map(|command| match &args.prefix {
+            Some(pfx) if command.starts_with(pfx) => &command[0..pfx.len()],
+            _ => command,
         })
         .collect();
 
