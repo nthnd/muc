@@ -32,7 +32,21 @@ pub fn get_contents(args: &Args) -> String {
 
 pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
     let separators: Vec<char> = args.separators.chars().collect();
-    let commands: Vec<&str> = contents
+    let mut only_prefix = "".to_string();
+    for line in contents.split('\n') {
+        only_prefix.push_str(match &args.prefix {
+            Some(pfx) => {
+                if line.starts_with(pfx) {
+                    &line[pfx.len()..]
+                } else {
+                    ""
+                }
+            },
+            _ => line,
+        });
+        only_prefix.push_str("\n");
+    }
+    let commands: Vec<&str> = only_prefix
         .split(&*separators)
         .filter(|x| !x.is_empty())
         .into_iter()
@@ -43,10 +57,6 @@ pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
                 }
                 ""
             })
-        })
-        .map(|command| match &args.prefix {
-            Some(pfx) if command.starts_with(pfx) => &command[0..pfx.len()],
-            _ => command,
         })
         .collect();
 
