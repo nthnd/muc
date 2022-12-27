@@ -36,7 +36,8 @@ muc --file $HISTFILE\
         --bar-close ')'                                     # (******    ) 
 ```
 
-### TODO
+### Roadmap
 - [X] Colors
 - [X] Customizable bar
-- [ ] More command line options
+- [ ] Resolve aliases
+- [ ] Recognize leader commands (sudo, doas, git, etc)
