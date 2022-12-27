@@ -16,7 +16,7 @@ Use your favorite AUR helper to install [muc-git](https://aur.archlinux.org/pack
 
 You can use the outputs provided by the `flake.nix` inside this repository to install `muc`. Either with the `overlays.default` output for your system configuration, or the package output to imperatively install it with `nix install github:nate-sys/muc` or create an ad-hoc shell with `nix shell github:nate-sys/muc`.
 
-To quicky run muck use following command.
+To quicky run muc use following command.
 ```sh
 nix run github:nate-sys/muc -- --file $HISTFILE --count 10 --pretty
 ```

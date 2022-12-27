@@ -9,7 +9,7 @@
 
   };
 
-  outputs = { self, nixpkgs, flake-utils,flake-compat }: {
+  outputs = { self, nixpkgs, flake-utils, flake-compat }: {
     overlays.default = _: prev:
       let
         inherit (prev.rustPlatform) buildRustPackage;
