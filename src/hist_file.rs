@@ -48,7 +48,7 @@ pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
         only_prefix.push_str("\n");
     }
 
-    let reg = Regex::new(r": \d\d\d\d\d\d\d\d\d\d:\d;").unwrap();
+    let reg = Regex::new(&args.regexp).unwrap();
     only_prefix = reg.replace_all(&only_prefix, "").to_string();
 
 
