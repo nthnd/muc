@@ -1,10 +1,28 @@
+use crate::Args;
+use aecir::style::{Color, ColorName, Format};
 use std::collections::HashMap;
-use std::io::Read;
+use std::io::{BufRead, BufReader};
 
-pub fn get_contents(path: &str) -> String {
-    let mut histfile_buffer = std::fs::File::open(path).unwrap();
+pub fn get_contents(args: &Args) -> String {
+    let histfile_buffer = std::fs::File::open(&args.file).unwrap();
+    let reader = BufReader::new(histfile_buffer);
     let mut contents = String::new();
-    histfile_buffer.read_to_string(&mut contents).unwrap();
+
+    for (index, line) in reader.lines().enumerate() {
+        if let Ok(line) = line {
+            contents.push_str(&line);
+            contents.push_str("\n");
+        } else {
+            if args.debug {
+                println!(
+                    "{yellow}{bold}[Error]{reset}Could not read line : {index} = {line:#?}",
+                    yellow = Color::Fg(ColorName::Yellow),
+                    bold = Format::Bold, 
+                    reset = aecir::style::reset_all()
+                );
+            }
+        }
+    }
 
     contents
 }

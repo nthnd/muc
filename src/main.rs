@@ -1,6 +1,3 @@
-// use std::env;
-#![allow(unused)]
-
 mod hist_file;
 mod utils;
 
@@ -25,6 +22,10 @@ pub struct Args {
     #[arg(short, long, default_value_t = false)]
     pretty: bool,
 
+    /// Show debug messages
+    #[arg(long, default_value_t = false)]
+    debug: bool,
+
     /// Bar opening character
     #[arg(long, default_value_t = '[')]
     bar_open: char,
@@ -40,6 +41,6 @@ pub struct Args {
 
 fn main() {
     let args = Args::parse();
-    let commands = hist_file::parse_contents(hist_file::get_contents(&args.file), &args.prefix);
+    let commands = hist_file::parse_contents(hist_file::get_contents(&args), &args.prefix);
     utils::display_sorted(commands, args);
 }
