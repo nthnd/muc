@@ -1,7 +1,8 @@
 # MUC
 Visualize your most used commands  
 
-![2022-12-26-08:24:06-screenshot](https://user-images.githubusercontent.com/96471299/209506463-8ea9f181-63a5-47ce-8279-168d3161a7a3.png)
+![2022-12-27-09:06:55-screenshot](https://user-images.githubusercontent.com/96471299/209619604-9d1e61ef-d60a-4091-b71b-e071c636f1b9.png)
+
 
 ## Usage
 
