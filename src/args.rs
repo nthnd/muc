@@ -11,6 +11,10 @@ pub struct Args {
     #[arg(long)]
     pub prefix: Option<String>,
 
+    /// Explicitly specify separators
+    #[arg(short, long, default_value_t = String::from("&|:;\n"))]
+    pub separators: String,
+
     /// Display top n commands
     #[arg(short, long)]
     pub count: Option<usize>,

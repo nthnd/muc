@@ -31,8 +31,9 @@ pub fn get_contents(args: &Args) -> String {
 }
 
 pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
+    let separators: Vec<char> = args.separators.chars().collect();
     let commands: Vec<&str> = contents
-        .split(&['\n', '&', '|', ';'])
+        .split(&*separators)
         .filter(|x| !x.is_empty())
         .into_iter()
         .map(|command| {
