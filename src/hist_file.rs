@@ -2,6 +2,7 @@ use crate::Args;
 use aecir::style::{Color, ColorName, Format};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
+use regex::Regex;
 
 fn print_warning(warning: &str) {
     println!(
@@ -46,6 +47,11 @@ pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
         });
         only_prefix.push_str("\n");
     }
+
+    let reg = Regex::new(r": \d\d\d\d\d\d\d\d\d\d:\d;").unwrap();
+    only_prefix = reg.replace_all(&only_prefix, "").to_string();
+
+
     let commands: Vec<&str> = only_prefix
         .split(&*separators)
         .filter(|x| !x.is_empty())
