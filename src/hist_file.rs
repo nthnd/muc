@@ -2,6 +2,7 @@ use crate::Args;
 use aecir::style::{Color, ColorName, Format};
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
+use regex::Regex;
 
 fn print_warning(warning: &str) {
     println!(
@@ -46,6 +47,18 @@ pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
         });
         only_prefix.push_str("\n");
     }
+
+    let regexp = match args.shell.to_lowercase().as_str() {
+        "bash" => &"",
+        "zsh" => &r": \d\d\d\d\d\d\d\d\d\d:\d;",
+        "fish" => &"- cmd: ",
+        _ => args.regexp.as_str(),
+    };
+
+    let reg = Regex::new(&regexp).unwrap();
+    only_prefix = reg.replace_all(&only_prefix, "").to_string();
+
+
     let commands: Vec<&str> = only_prefix
         .split(&*separators)
         .filter(|x| !x.is_empty())
