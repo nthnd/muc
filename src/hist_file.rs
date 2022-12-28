@@ -31,6 +31,63 @@ pub fn get_contents(args: &Args) -> String {
     contents
 }
 
+/// Find the index of the first occurrence of `target` but takes into account
+/// escaping made with back slashes.
+fn find_unescaped(contents: &[char], target: char) -> Option<usize> {
+    let mut index = 0;
+    let mut escaped = false;
+    for &c in contents {
+        index += 1;
+        if escaped {
+            escaped = false;
+        } else if c == '\\' {
+            escaped = true;
+        } else if c == target {
+            return Some(index-1);
+        }
+    }
+    None
+}
+
+/// Removes all quotes strings put in between the given delimiters.
+/// For example:
+/// ```
+/// remove_quoted_strings(Hi "Mike \" Ventury"!) => Hi!
+/// ```
+fn remove_quoted_strings(contents: String, delimiter: char) -> String {
+
+    fn _remove_quoted_strings(contents: Vec<char>, delimiter: char) -> Vec<char> {
+        match find_unescaped(&contents, delimiter) {
+            Some(fist_match) => {
+                let ret = &contents[0..fist_match];
+                match find_unescaped(&contents[fist_match+1..], delimiter) {
+                    Some(second_match) => {
+                        let rest = &contents[fist_match+second_match+2..];
+                        let mut concat: Vec<char> = vec![];
+                        concat.extend_from_slice(ret);
+                        concat.extend_from_slice(rest);
+                        _remove_quoted_strings(concat, delimiter)
+                    },
+                    None => contents
+                }
+            },
+            None => contents,
+        }
+    }
+
+    let contents_ca: Vec<char> = contents.chars().collect();
+    _remove_quoted_strings(contents_ca, delimiter).iter().collect()
+}
+
+/// Removes all quotes strings from the input
+fn remove_all_quotes(contents: String) -> String {
+    remove_quoted_strings(
+        remove_quoted_strings(
+            remove_quoted_strings(contents, '`'),
+            '"'),
+            '\'')
+}
+
 pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
     let separators: Vec<char> = args.separators.chars().collect();
     let mut only_prefix = "".to_string();
@@ -48,6 +105,9 @@ pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
         only_prefix.push_str("\n");
     }
 
+    let mut unquoted = remove_all_quotes(only_prefix);
+
+
     let regexp = match args.shell.to_lowercase().as_str() {
         "bash" => &"",
         "zsh" => &r": \d\d\d\d\d\d\d\d\d\d:\d;",
@@ -56,10 +116,10 @@ pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
     };
 
     let reg = Regex::new(&regexp).unwrap();
-    only_prefix = reg.replace_all(&only_prefix, "").to_string();
+    unquoted = reg.replace_all(&only_prefix, "").to_string();
 
 
-    let commands: Vec<&str> = only_prefix
+    let commands: Vec<&str> = unquoted
         .split(&*separators)
         .filter(|x| !x.is_empty())
         .into_iter()
