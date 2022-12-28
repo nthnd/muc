@@ -14,7 +14,7 @@ fn print_warning(warning: &str) {
 }
 
 pub fn get_contents(args: &Args) -> String {
-    let Ok(histfile_buffer) = std::fs::File::open(&args.file) else { panic!("Please specify a valid histfile")};
+    let histfile_buffer = std::fs::File::open(&args.file).expect("Couldn't find histfile");
 
     let reader = BufReader::new(histfile_buffer);
     let mut contents = String::new();
