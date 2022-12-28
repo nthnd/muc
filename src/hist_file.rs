@@ -80,10 +80,10 @@ fn remove_quoted_strings(contents: String, delimiter: char) -> String {
 }
 
 /// Removes all quotes strings from the input
-fn remove_all_quotes(contents: String) -> String {
+fn remove_all_quotes(contents: &str) -> String {
     remove_quoted_strings(
         remove_quoted_strings(
-            remove_quoted_strings(contents, '`'),
+            remove_quoted_strings(contents.to_string(), '`'),
             '"'),
             '\'')
 }
@@ -105,7 +105,7 @@ pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
         only_prefix.push_str("\n");
     }
 
-    let mut unquoted = remove_all_quotes(only_prefix);
+    let mut unquoted = remove_all_quotes(&only_prefix);
 
 
     let regexp = match args.shell.to_lowercase().as_str() {
@@ -116,7 +116,7 @@ pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
     };
 
     let reg = Regex::new(&regexp).unwrap();
-    unquoted = reg.replace_all(&only_prefix, "").to_string();
+    unquoted = reg.replace_all(&unquoted, "").to_string();
 
 
     let commands: Vec<&str> = unquoted

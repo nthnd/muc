@@ -44,7 +44,7 @@ pub struct Args {
     pub regexp: String,
 
     /// Preset regular expressions for common shells: Bash, ZSH, Fish.
-    #[arg(short, long, default_value_t = String::from(""))]
+    #[arg(long, default_value_t = String::from(""))]
     pub shell: String,
 
 }
