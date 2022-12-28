@@ -38,4 +38,13 @@ pub struct Args {
     /// Bar character
     #[arg(long, default_value_t = '▮')]
     pub bar: char,
+
+    /// Regular expression to allow for the removal of prefixes in shells like zsh. Default value is for zsh. NOTE: shell overrides this argument
+    #[arg(short, long, default_value_t = String::from(""))]
+    pub regexp: String,
+
+    /// Preset regular expressions for common shells: Bash, ZSH, Fish.
+    #[arg(short, long, default_value_t = String::from(""))]
+    pub shell: String,
+
 }
