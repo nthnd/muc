@@ -91,16 +91,25 @@ fn remove_all_quotes(contents: &str) -> String {
 pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
     let separators: Vec<char> = args.separators.chars().collect();
     let mut only_prefix = "".to_string();
+
+    let prefix = match &args.prefix {
+        Some(pfx) => pfx,
+        None => match args.shell.as_str() {
+            "fish" => "- cmd: ",
+            _ => "",
+        },
+    };
+
     for line in contents.split('\n') {
-        only_prefix.push_str(match &args.prefix {
-            Some(pfx) => {
+        only_prefix.push_str(match prefix {
+            "" => line,
+            pfx => {
                 if line.starts_with(pfx) {
                     &line[pfx.len()..]
                 } else {
                     ""
                 }
             },
-            _ => line,
         });
         only_prefix.push('\n');
     }
@@ -111,7 +120,10 @@ pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
     let regexp = match args.shell.to_lowercase().as_str() {
         "bash" => "",
         "zsh" => r": \d\d\d\d\d\d\d\d\d\d:\d;",
-        "fish" => "- cmd: ",
+        "fish" => match &args.prefix {
+            Some(_pfx) =>"- cmd: ",
+            None => "", // If no prefix had been given, the default prefix already deleted the "- cmd: "s
+        }
         _ => args.regexp.as_str(),
     };
 
