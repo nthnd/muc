@@ -102,20 +102,20 @@ pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
             },
             _ => line,
         });
-        only_prefix.push_str("\n");
+        only_prefix.push('\n');
     }
 
     let mut unquoted = remove_all_quotes(&only_prefix);
 
 
     let regexp = match args.shell.to_lowercase().as_str() {
-        "bash" => &"",
-        "zsh" => &r": \d\d\d\d\d\d\d\d\d\d:\d;",
-        "fish" => &"- cmd: ",
+        "bash" => "",
+        "zsh" => r": \d\d\d\d\d\d\d\d\d\d:\d;",
+        "fish" => "- cmd: ",
         _ => args.regexp.as_str(),
     };
 
-    let reg = Regex::new(&regexp).unwrap();
+    let reg = Regex::new(regexp).unwrap();
     unquoted = reg.replace_all(&unquoted, "").to_string();
 
 
