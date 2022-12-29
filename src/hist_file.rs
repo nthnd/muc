@@ -56,27 +56,32 @@ fn find_unescaped(contents: &[char], target: char) -> Option<usize> {
 /// ```
 fn remove_quoted_strings(contents: String, delimiter: char) -> String {
 
-    fn _remove_quoted_strings(contents: Vec<char>, delimiter: char) -> Vec<char> {
+    fn _remove_quoted_strings<'a>(contents: &'a[char], delimiter: char, slices: &mut Vec<&'a [char]>) {
         match find_unescaped(&contents, delimiter) {
-            Some(fist_match) => {
-                let ret = &contents[0..fist_match];
-                match find_unescaped(&contents[fist_match+1..], delimiter) {
+            Some(first_match) => {
+                let ret = &contents[0..first_match];
+                match find_unescaped(&contents[first_match+1..], delimiter) {
                     Some(second_match) => {
-                        let rest = &contents[fist_match+second_match+2..];
-                        let mut concat: Vec<char> = vec![];
-                        concat.extend_from_slice(ret);
-                        concat.extend_from_slice(rest);
-                        _remove_quoted_strings(concat, delimiter)
+                        slices.push(ret);
+                        let rest = &contents[first_match+second_match+2..];
+                        _remove_quoted_strings(rest, delimiter, slices);
                     },
-                    None => contents
+                    None => {return;}
                 }
             },
-            None => contents,
+            None => {return;},
         }
     }
 
+    let mut all_matches: Vec<&[char]> = vec![];
     let contents_ca: Vec<char> = contents.chars().collect();
-    _remove_quoted_strings(contents_ca, delimiter).iter().collect()
+    _remove_quoted_strings(&contents_ca, delimiter, &mut all_matches);
+
+    let mut concat: Vec<char> = vec![];
+    for slice in all_matches {
+        concat.extend_from_slice(slice);
+    }
+    concat.iter().collect()
 }
 
 /// Removes all quotes strings from the input
