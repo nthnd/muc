@@ -57,19 +57,15 @@ fn find_unescaped(contents: &[char], target: char) -> Option<usize> {
 fn remove_quoted_strings(contents: String, delimiter: char) -> String {
 
     fn _remove_quoted_strings<'a>(contents: &'a[char], delimiter: char, slices: &mut Vec<&'a [char]>) {
-        match find_unescaped(&contents, delimiter) {
-            Some(first_match) => {
-                let ret = &contents[0..first_match];
-                match find_unescaped(&contents[first_match+1..], delimiter) {
-                    Some(second_match) => {
-                        slices.push(ret);
-                        let rest = &contents[first_match+second_match+2..];
-                        _remove_quoted_strings(rest, delimiter, slices);
-                    },
-                    None => {return;}
-                }
-            },
-            None => {return;},
+        if let Some(first_match) = find_unescaped(&contents, delimiter) {
+            let ret = &contents[0..first_match];
+            slices.push(ret);
+            if let Some(second_match) = find_unescaped(&contents[first_match+1..], delimiter) {
+                let rest = &contents[first_match+second_match+2..];
+                _remove_quoted_strings(rest, delimiter, slices);
+            } else {
+                slices.push(&contents[first_match+1..]);
+            }
         }
     }
 
