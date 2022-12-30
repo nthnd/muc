@@ -66,6 +66,8 @@ fn remove_quoted_strings(contents: String, delimiter: char) -> String {
             } else {
                 slices.push(&contents[first_match+1..]);
             }
+        } else {
+            slices.push(&contents);
         }
     }
 
