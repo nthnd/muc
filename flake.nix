@@ -20,7 +20,7 @@
           pname = "muc";
           src = self;
           inherit (toml.package) version;
-          cargoHash = "sha256-DJMe9LhfydV1Z3Wk8vZXZlGBe4JMbE7yqnEOvVbg4f8=";
+          cargoHash = "sha256-w/b4qps4z1HrtSlSklflU6i1QfSFQw20+uALIpCIk8I=";
         };
       };
   } //
