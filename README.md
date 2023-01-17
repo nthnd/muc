@@ -1,8 +1,7 @@
 # MUC
 Visualize your most used commands  
 
-![2022-12-27-09:06:55-screenshot](https://user-images.githubusercontent.com/96471299/209619604-9d1e61ef-d60a-4091-b71b-e071c636f1b9.png)
-
+![scrot](images/scrot.png)
 
 ## Usage
 
