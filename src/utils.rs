@@ -4,7 +4,10 @@ use utf8_slice::slice;
 use crate::Args;
 use aecir::style::{Color, ColorName, Format};
 
-pub fn display_sorted(data: HashMap<String, usize>, args: Args) {
+pub fn display_sorted(data: (HashMap<String, usize>, HashMap<String, Vec<String>>) , args: Args) {
+    let sub_commands = data.1;
+    let data = data.0;
+
     let mut sorted: Vec<(String, usize)> = data.into_iter().collect::<Vec<(String, usize)>>();
     sorted.sort_by(|a, b| b.1.cmp(&a.1));
 
@@ -19,6 +22,8 @@ pub fn display_sorted(data: HashMap<String, usize>, args: Args) {
     };
 
     for item in list {
+
+        let current_subcommands = sub_commands.get(&item.0);
         print_command(
             &item.0,
             item.1,
@@ -26,6 +31,7 @@ pub fn display_sorted(data: HashMap<String, usize>, args: Args) {
             max,
             command_indentation,
             &args,
+            current_subcommands.cloned(),
         );
     }
     if limitted {
@@ -54,6 +60,7 @@ pub fn print_command(
     max: usize,
     command_indentation: usize,
     args: &Args,
+    sub_commands: Option<Vec<String>>
 ) {
     let bar: String = format!(
         "{: <10}",
@@ -61,11 +68,17 @@ pub fn print_command(
             .to_string()
             .repeat(((invocations as f32 / max as f32) * 10.) as usize)
     );
+    let pretty_sub_commands = if let Some(sub_commands) = sub_commands{
+        let trim_len = sub_commands.len().min(3);
+        let mut x = sub_commands[..trim_len].join(", ");
+        x.push_str(" ...");
+        x
+    } else {"".to_string()};
     if args.pretty {
         println!(
             "{opening_char}{red}{bar_first: <2}{yellow}{bar_second: <3}{green}{bar_third: <5}{reset}{closing_char} \
             {percentage: >5.2}% {gray}{invocations:command_indentation$}{reset}\
-            {bold} {command} {reset_style}",
+            {bold} {command} {reset_style}{gray}{pretty_sub_commands} {reset}",
             opening_char = args.bar_open,
             red = Color::Fg(ColorName::Red),
             bar_first = slice(&bar, 0, 2),

@@ -91,7 +91,8 @@ fn remove_all_quotes(contents: &str) -> String {
             '\'')
 }
 
-pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
+pub fn parse_contents(contents: String, args: &Args) 
+    -> ( HashMap<String, usize>, HashMap<String, Vec<String>> ) {
     let separators: Vec<char> = args.separators.chars().collect();
     let mut only_prefix = "".to_string();
 
@@ -134,19 +135,42 @@ pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
     unquoted = reg.replace_all(&unquoted, "").to_string();
 
 
-    let commands: Vec<&str> = unquoted
+    let command_lines: Vec<&str> = unquoted
         .split(&*separators)
-        .filter(|x| !x.is_empty())
-        .into_iter()
-        .map(|command| {
-            command.split_whitespace().next().unwrap_or_else(|| {
-                if args.debug {
-                    print_warning("Error while parsing command");
+        .filter(|x| !x.is_empty()).collect();
+
+    let mut commands: Vec<&str> = Vec::new();
+    let mut sub_commands: HashMap<String, Vec<String>> = HashMap::new();
+
+    for command in command_lines.iter() {
+        let mut words = command.split_whitespace();
+        if let Some(first_word) = words.next() {
+            // true means ignore the sub command
+            let leaders = vec![
+                ( "sudo", false ),
+                ( "watch", false ),
+                ( "git", true),
+                ( "cargo", true ),
+            ];
+            commands.push(first_word);
+            leaders.iter().for_each(|(leader, should_ignore)| {
+                if leader == &first_word {
+                    if let Some(second_word) = words.next() {
+                        if !should_ignore { commands.push(second_word) }
+                        sub_commands.entry(first_word.into()).and_modify(|arr| {
+                            if !arr.contains(&second_word.to_owned()){
+                                arr.push(second_word.into());
+                            }
+                        }).or_insert_with(|| vec![second_word.into()]);
+                    }
                 }
-                ""
-            })
-        })
-        .collect();
+
+            });
+        }
+        else if args.debug {
+                print_warning("Error while parsing command");
+        }
+    }
 
     let mut with_frequencies = HashMap::new();
 
@@ -154,5 +178,6 @@ pub fn parse_contents(contents: String, args: &Args) -> HashMap<String, usize> {
         *with_frequencies.entry(command.into()).or_insert(0) += 1;
     }
 
-    with_frequencies
+    (with_frequencies, sub_commands)
 }
+
