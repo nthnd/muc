@@ -86,8 +86,7 @@ pub fn parse_contents(contents: String, args: &Args) -> Vec<String> {
 
     let unquoted_lines = shell_parsed.map(remove_all_quotes);
     let command_lines: Vec<String> = unquoted_lines
-        .map(|line| get_commands(line))
-        .flatten()
+        .flat_map(get_commands)
         .collect();
 
     command_lines
@@ -121,7 +120,7 @@ pub fn process_lines(lines: Vec<String>, _args: &Args) -> CommandMap {
             if leaders.contains(&first.as_str()) {
                 parent_entry.1 = Some(true);
                 output
-                    .entry(second.clone().to_string())
+                    .entry(( *second ).to_string())
                     .or_insert((0, None, HashMap::new()))
                     .0 += 1;
             } else if super_commands.contains(&first.as_str()) {

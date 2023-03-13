@@ -7,8 +7,9 @@ use utf8_slice::slice;
 use crate::{hist_file::CommandMap, Args};
 use aecir::style::{Color, ColorName, Format};
 
+type VeryComplexType = (String, Option<bool>, HashMap<String, usize>);
 pub fn display_sorted(data: CommandMap, args: Args) {
-    let tree: BTreeMap<usize, (String, Option<bool>, HashMap<String, usize>)> = data
+    let tree: BTreeMap<usize, VeryComplexType> = data
         .into_iter()
         .map(|(s, (f, o, h))| (f, (s, o, h)))
         .collect();
@@ -16,17 +17,17 @@ pub fn display_sorted(data: CommandMap, args: Args) {
     let total = tree.len();
     let max = *tree.last_key_value().unwrap().0;
 
-    let limited_tree: Vec<(usize, (String, Option<bool>, HashMap<String, usize>))> =
+    let limited_tree: Vec<(usize, VeryComplexType)> =
         tree.into_iter().rev().collect();
 
     for (freq, elem) in
-        limited_tree[..(usize::min(args.count.unwrap(), limited_tree.len()))].into_iter()
+        limited_tree[..(usize::min(args.count.unwrap(), limited_tree.len()))].iter()
     {
         let (s, _o, h) = elem;
-        let mut sub_commands = h.into_iter().collect::<Vec<(&String, &usize)>>();
-        sub_commands.sort_by(|a, b| b.1.cmp(&a.1));
+        let mut sub_commands = h.iter().collect::<Vec<(&String, &usize)>>();
+        sub_commands.sort_by(|a, b| b.1.cmp(a.1));
         let sub_commands = sub_commands[..(usize::min(3, sub_commands.len()))]
-            .into_iter()
+            .iter()
             .map(|x| x.0.to_owned())
             .collect();
 
