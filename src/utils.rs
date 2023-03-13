@@ -1,54 +1,42 @@
-use std::{collections::HashMap, usize, cmp::min};
+use std::{
+    collections::{BTreeMap, HashMap},
+    usize,
+};
 use utf8_slice::slice;
 
-use crate::Args;
+use crate::{hist_file::CommandMap, Args};
 use aecir::style::{Color, ColorName, Format};
 
-pub fn display_sorted(data: (HashMap<String, usize>, HashMap<String, Vec<String>>) , args: Args) {
-    let sub_commands = data.1;
-    let data = data.0;
+pub fn display_sorted(data: CommandMap, args: Args) {
+    let tree: BTreeMap<usize, (String, Option<bool>, HashMap<String, usize>)> = data
+        .into_iter()
+        .map(|(s, (f, o, h))| (f, (s, o, h)))
+        .collect();
 
-    let mut sorted: Vec<(String, usize)> = data.into_iter().collect::<Vec<(String, usize)>>();
-    sorted.sort_by(|a, b| b.1.cmp(&a.1));
+    let total = tree.len();
+    let max = *tree.last_key_value().unwrap().0;
 
-    let total = sorted.iter().fold(0, |acc, x| acc + x.1);
-    let max = sorted[0].1;
-    let command_indentation = max.to_string().len();
+    let limited_tree: Vec<(usize, (String, Option<bool>, HashMap<String, usize>))> =
+        tree.into_iter().rev().collect();
 
-    let (list, limitted) = if let Some(limit) = args.count {
-        (&sorted[0..min(limit, sorted.len())], true)
-    } else {
-        (&sorted[0..], false)
-    };
+    for (freq, elem) in
+        limited_tree[..(usize::min(args.count.unwrap(), limited_tree.len()))].into_iter()
+    {
+        let (s, _o, h) = elem;
+        let mut sub_commands = h.into_iter().collect::<Vec<(&String, &usize)>>();
+        sub_commands.sort_by(|a, b| b.1.cmp(&a.1));
+        let sub_commands = sub_commands[..(usize::min(3, sub_commands.len()))]
+            .into_iter()
+            .map(|x| x.0.to_owned())
+            .collect();
 
-    for item in list {
-
-        let current_subcommands = sub_commands.get(&item.0);
         print_command(
-            &item.0,
-            item.1,
-            item.1 as f32 * 100. / total as f32,
+            s,
+            *freq,
+            *freq as f32 / total as f32,
             max,
-            command_indentation,
             &args,
-            current_subcommands.cloned(),
-        );
-    }
-    if limitted {
-        let remaining_total = total - list.iter().fold(0, |acc, x| acc + x.1);
-        let remaining_percentage = (remaining_total as f32 * 100. / total as f32) as usize;
-        println!(
-            "{gray} ...  {remaining_total} (~{remaining_percentage}%) others {reset}",
-            gray = if args.pretty {
-                Color::Fg(ColorName::LightBlack).to_string()
-            } else {
-                "".to_string()
-            },
-            reset = if args.pretty {
-                aecir::style::reset_colors()
-            } else {
-                "".to_string()
-            }
+            Some(sub_commands),
         );
     }
 }
@@ -58,9 +46,8 @@ pub fn print_command(
     invocations: usize,
     percentage: f32,
     max: usize,
-    command_indentation: usize,
     args: &Args,
-    sub_commands: Option<Vec<String>>
+    sub_commands: Option<Vec<String>>,
 ) {
     let bar: String = format!(
         "{: <10}",
@@ -68,16 +55,18 @@ pub fn print_command(
             .to_string()
             .repeat(((invocations as f32 / max as f32) * 10.) as usize)
     );
-    let pretty_sub_commands = if let Some(sub_commands) = sub_commands{
+    let pretty_sub_commands = if let Some(sub_commands) = sub_commands {
         let trim_len = sub_commands.len().min(3);
         let mut x = sub_commands[..trim_len].join(", ");
         x.push_str(" ...");
         x
-    } else {"".to_string()};
+    } else {
+        "".to_string()
+    };
     if args.pretty {
         println!(
             "{opening_char}{red}{bar_first: <2}{yellow}{bar_second: <3}{green}{bar_third: <5}{reset}{closing_char} \
-            {percentage: >5.2}% {gray}{invocations:command_indentation$}{reset}\
+            {percentage: >5.2}% {gray}{invocations:5}{reset}\
             {bold} {command} {reset_style}{gray}{pretty_sub_commands} {reset}",
             opening_char = args.bar_open,
             red = Color::Fg(ColorName::Red),
@@ -94,7 +83,7 @@ pub fn print_command(
         );
     } else {
         println!(
-            "{opening_char}{bar}{closing_char} {percentage: >5.2}% {invocations:command_indentation$} {command}",
+            "{opening_char}{bar}{closing_char} {percentage: >5.2}% {invocations:5} {command}",
             opening_char = args.bar_open,
             closing_char = args.bar_close,
         );

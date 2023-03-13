@@ -48,88 +48,88 @@ fn remove_all_quotes(contents: &str) -> String {
     unquoted
 }
 
-pub fn parse_contents(
-    contents: String,
-    args: &Args,
-) -> (HashMap<String, usize>, HashMap<String, Vec<String>>) {
-    let separators: Vec<char> = args.separators.chars().collect();
-    let mut only_prefix = "".to_string();
+fn get_commands(line: String) -> Vec<String> {
+    line.split(&['&', '|', ';'])
+        .filter(|x| !x.is_empty())
+        .map(|x| x.to_string())
+        .collect::<Vec<String>>()
+}
 
-    let prefix = match &args.prefix {
-        Some(pfx) => pfx,
-        None => match args.shell.as_str() {
-            "fish" => "- cmd: ",
-            _ => "",
-        },
-    };
+/// Takes contents of a file and returns a vector of valid commands
+pub fn parse_contents(contents: String, args: &Args) -> Vec<String> {
+    let lines = contents
+        .lines()
+        .filter(|line| !line.is_empty())
+        .map(str::trim);
 
-    for line in contents.split('\n') {
-        only_prefix.push_str(line.strip_prefix(prefix).unwrap_or(line));
-        only_prefix.push('\n');
+    fn bash_strat(line: &str) -> &str {
+        line
     }
 
-    let mut unquoted = remove_all_quotes(&only_prefix);
-
-    let regexp = match args.shell.to_lowercase().as_str() {
-        "bash" => "",
-        "zsh" => r": \d\d\d\d\d\d\d\d\d\d:\d;",
-        "fish" => match &args.prefix {
-            Some(_pfx) => "-cmd: ",
-            None => "",
-        },
-        _ => args.regexp.as_str(),
-    };
-
-    let reg = Regex::new(regexp).unwrap();
-    unquoted = reg.replace_all(&unquoted, "").to_string();
-
-    let command_lines: Vec<&str> = unquoted
-        .split(&*separators)
-        .filter(|x| !x.is_empty())
-        .collect();
-
-    let mut commands: Vec<&str> = Vec::new();
-    let mut sub_commands: HashMap<String, Vec<String>> = HashMap::new();
-
-    for command in command_lines.iter() {
-        let mut words = command.split_whitespace();
-        if let Some(first_word) = words.next() {
-            let leaders = vec![
-                ("sudo", false),
-                ("watch", false),
-                ("git", true),
-                ("cargo", true),
-            ];
-            commands.push(first_word);
-            leaders.iter().for_each(|(leader, should_ignore)| {
-                if leader == &first_word {
-                    if let Some(second_word) = words.next() {
-                        if !should_ignore {
-                            commands.push(second_word)
-                        }
-                        sub_commands
-                            .entry(first_word.into())
-                            .and_modify(|arr| {
-                                if !arr.contains(&second_word.to_owned()) {
-                                    arr.push(second_word.into());
-                                }
-                            })
-                            .or_insert_with(|| vec![second_word.into()]);
-                    }
-                }
-            });
-        } else if args.debug {
-            print_warning("Error while parsing command");
+    fn fish_strat(line: &str) -> &str {
+        if line.starts_with("when: ") {
+            ""
+        } else {
+            &line[7..]
         }
     }
 
-    let mut with_frequencies = HashMap::new();
-
-    for command in commands.into_iter() {
-        *with_frequencies.entry(command.into()).or_insert(0) += 1;
+    fn ohmyzsh_strat(line: &str) -> &str {
+        &line[7..]
     }
 
-    (with_frequencies, sub_commands)
+    let shell_parsed = lines.map(match args.shell.as_str() {
+        "fish" => fish_strat,
+        "ohmyzsh" => ohmyzsh_strat,
+        _ => bash_strat,
+    });
+
+    let unquoted_lines = shell_parsed.map(remove_all_quotes);
+    let command_lines: Vec<String> = unquoted_lines
+        .map(|line| get_commands(line))
+        .flatten()
+        .collect();
+
+    command_lines
+}
+
+pub(crate) type CommandMap = HashMap<String, (usize, Option<bool>, HashMap<String, usize>)>;
+
+pub fn process_lines(lines: Vec<String>, _args: &Args) -> CommandMap {
+    let leaders = ["sudo", "doas"];
+    let super_commands = ["git", "entr", "time"];
+
+    let mut output: CommandMap = HashMap::new();
+
+    for line in lines.into_iter() {
+        let words = line.split_whitespace().collect::<Vec<&str>>();
+
+        let (first, second) = (words.first().unwrap().to_string(), words.get(1));
+
+        output
+            .entry(first.clone())
+            .or_insert((0, None, HashMap::new()))
+            .0 += 1;
+
+        if let Some(second) = second {
+            let mut parent_entry = output.get_mut(&first).unwrap();
+
+            if parent_entry.1.is_some() {
+                *parent_entry.2.entry(second.to_string()).or_insert(0) += 1;
+            }
+
+            if leaders.contains(&first.as_str()) {
+                parent_entry.1 = Some(true);
+                output
+                    .entry(second.clone().to_string())
+                    .or_insert((0, None, HashMap::new()))
+                    .0 += 1;
+            } else if super_commands.contains(&first.as_str()) {
+                parent_entry.1 = Some(false);
+            }
+        }
+    }
+    output
 }
 
 #[cfg(test)]
