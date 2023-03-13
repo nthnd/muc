@@ -64,16 +64,7 @@ pub fn parse_contents(
     };
 
     for line in contents.split('\n') {
-        only_prefix.push_str(match prefix {
-            "" => line,
-            pfx => {
-                if line.starts_with(pfx) {
-                    &line[pfx.len()..]
-                } else {
-                    ""
-                }
-            }
-        });
+        only_prefix.push_str(line.strip_prefix(prefix).unwrap_or(line));
         only_prefix.push('\n');
     }
 
@@ -85,7 +76,7 @@ pub fn parse_contents(
         "fish" => match &args.prefix {
             Some(_pfx) => "-cmd: ",
             None => "",
-        }
+        },
         _ => args.regexp.as_str(),
     };
 
@@ -182,18 +173,17 @@ mod quotes {
         )
     }
 
-
     #[test]
     fn polyglots() {
         assert_eq!(
-           remove_all_quotes("echo 'hi' | something \"hello\" && blah `hi`"),
-           "echo  | something  && blah ".to_string()
+            remove_all_quotes("echo 'hi' | something \"hello\" && blah `hi`"),
+            "echo  | something  && blah ".to_string()
         )
     }
 }
 
 #[cfg(test)]
-mod parsing { 
+mod parsing {
     #[test]
     #[ignore = "reformat pending ..."]
     fn tood() {
