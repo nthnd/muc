@@ -1,5 +1,5 @@
 mod hist_file;
-mod utils;
+mod display;
 mod args;
 use std::env;
 
@@ -17,6 +17,5 @@ fn main() {
     let command_lines = hist_file::parse_contents(contents, &args);
     let commands = hist_file::process_lines(command_lines, &args);
 
-
-    utils::display_sorted(commands, args);
+    display::print(commands, args);
 }

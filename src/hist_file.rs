@@ -14,7 +14,6 @@ fn print_warning(warning: &str) {
 }
 
 pub fn get_contents(hist_file: std::fs::File, args: &Args) -> String {
-
     let reader = BufReader::new(hist_file);
     let mut contents = String::new();
 
@@ -69,11 +68,7 @@ pub fn parse_contents(contents: String, args: &Args) -> Vec<String> {
     let reg = Regex::new("('(?:.|[^'\n])*'|\"(?:.|[^\"\n])*\")").unwrap();
 
     let unquoted_lines = shell_parsed.map(|line| reg.replace_all(line, "").to_string());
-    let command_lines = unquoted_lines
-        .flat_map(get_commands)
-        .collect();
-
-    command_lines
+    unquoted_lines.flat_map(get_commands).collect()
 }
 
 pub(crate) type CommandMap = HashMap<String, (usize, Option<bool>, HashMap<String, usize>)>;
@@ -104,7 +99,7 @@ pub fn process_lines(lines: Vec<String>, _args: &Args) -> CommandMap {
             if leaders.contains(&first.as_str()) {
                 parent_entry.1 = Some(true);
                 output
-                    .entry(( *second ).to_string())
+                    .entry((*second).to_string())
                     .or_insert((0, None, HashMap::new()))
                     .0 += 1;
             } else if super_commands.contains(&first.as_str()) {
