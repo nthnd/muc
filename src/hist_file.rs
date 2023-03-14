@@ -13,10 +13,9 @@ fn print_warning(warning: &str) {
     );
 }
 
-pub fn get_contents(args: &Args) -> String {
-    let histfile_buffer = std::fs::File::open(&args.file).expect("Couldn't find histfile");
+pub fn get_contents(hist_file: std::fs::File, args: &Args) -> String {
 
-    let reader = BufReader::new(histfile_buffer);
+    let reader = BufReader::new(hist_file);
     let mut contents = String::new();
 
     for (index, line) in reader.lines().enumerate() {

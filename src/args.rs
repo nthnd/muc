@@ -3,24 +3,12 @@ use clap::Parser;
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
-    /// Path to the file where history is stored
-    #[arg(short, long)]
-    pub file: String,
-
-    /// Specify a prefix for formatting lines
-    #[arg(long)]
-    pub prefix: Option<String>,
-
-    /// Explicitly specify separators
-    #[arg(short, long, default_value_t = String::from("&|:;\n"))]
-    pub separators: String,
-
     /// Display top n commands
     #[arg(short, long)]
     pub count: Option<usize>,
 
     /// Make output pretty
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short, long, default_value_t = true)]
     pub pretty: bool,
 
     /// Show debug messages
