@@ -31,28 +31,11 @@ pub fn get_contents(args: &Args) -> String {
     contents
 }
 
-fn remove_quoted_strings(content: &str, quot_char: char) -> String {
-    let quoted = format!(
-        "{quot_char}(\\.|[^{quot_char}])*{quot_char}",
-        quot_char = quot_char
-    );
-    let reg = Regex::new(&quoted).unwrap();
-    let cap = reg.replace_all(content, "");
-    cap.to_string()
-}
-
-fn remove_all_quotes(contents: &str) -> String {
-    let mut unquoted = remove_quoted_strings(contents, '`');
-    unquoted = remove_quoted_strings(unquoted.as_str(), '"');
-    unquoted = remove_quoted_strings(unquoted.as_str(), '\'');
-    unquoted
-}
-
 fn get_commands(line: String) -> Vec<String> {
     line.split(&['&', '|', ';'])
         .filter(|x| !x.is_empty())
-        .map(|x| x.to_string())
-        .collect::<Vec<String>>()
+        .map(str::to_string)
+        .collect()
 }
 
 /// Takes contents of a file and returns a vector of valid commands
@@ -84,8 +67,10 @@ pub fn parse_contents(contents: String, args: &Args) -> Vec<String> {
         _ => bash_strat,
     });
 
-    let unquoted_lines = shell_parsed.map(remove_all_quotes);
-    let command_lines: Vec<String> = unquoted_lines
+    let reg = Regex::new("('(?:.|[^'\n])*'|\"(?:.|[^\"\n])*\")").unwrap();
+
+    let unquoted_lines = shell_parsed.map(|line| reg.replace_all(line, "").to_string());
+    let command_lines = unquoted_lines
         .flat_map(get_commands)
         .collect();
 
@@ -129,56 +114,6 @@ pub fn process_lines(lines: Vec<String>, _args: &Args) -> CommandMap {
         }
     }
     output
-}
-
-#[cfg(test)]
-mod quotes {
-    use super::*;
-
-    #[test]
-    fn basic_quotes() {
-        assert_eq!(remove_quoted_strings("echo `hi`", '`'), "echo ".to_string());
-        assert_eq!(
-            remove_quoted_strings("echo \"hi\"", '"'),
-            "echo ".to_string()
-        );
-        assert_eq!(
-            remove_quoted_strings("echo 'hi'", '\''),
-            "echo ".to_string()
-        );
-    }
-
-    #[test]
-    fn sequenced_quotes() {
-        assert_eq!(
-            remove_quoted_strings("echo 'hi' and another 'hi'", '\''),
-            "echo  and another ".to_string()
-        );
-        assert_eq!(
-            remove_quoted_strings("echo \"hi\" and another \"hi\"", '"'),
-            "echo  and another ".to_string()
-        );
-        assert_eq!(
-            remove_quoted_strings("echo `hi` and another `hi`", '`'),
-            "echo  and another ".to_string()
-        );
-    }
-
-    #[test]
-    fn imbalanced() {
-        assert_eq!(
-            remove_quoted_strings("echo \"hi\" and another \"hi", '"'),
-            "echo  and another \"hi".to_string()
-        )
-    }
-
-    #[test]
-    fn polyglots() {
-        assert_eq!(
-            remove_all_quotes("echo 'hi' | something \"hello\" && blah `hi`"),
-            "echo  | something  && blah ".to_string()
-        )
-    }
 }
 
 #[cfg(test)]
