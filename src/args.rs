@@ -1,7 +1,5 @@
 use std::str::FromStr;
 
-// use utf8_slice;
-
 use clap::Parser;
 
 #[derive(Parser, Debug)]
@@ -53,10 +51,10 @@ impl FromStr for Bar {
         let chars = s.split(',').collect::<Vec<&str>>();
         match chars.len() {
             4 => Ok(Bar {
-                opening: chars.get(0).unwrap().to_string(),
-                fill: chars.get(1).unwrap().to_string(),
-                empty: chars.get(2).unwrap().to_string(),
-                closing: chars.get(3).unwrap().to_string(),
+                opening: chars[0].to_string(),
+                fill: chars[1].to_string(),
+                empty: chars[2].to_string(),
+                closing: chars[3].to_string(),
             }),
             _ => Err("Invalid bar length".to_string()),
         }
@@ -65,6 +63,10 @@ impl FromStr for Bar {
 
 impl std::fmt::Display for Bar {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{},{},{},{}", self.opening, self.fill, self.empty, self.closing)
+        write!(
+            f,
+            "{},{},{},{}",
+            self.opening, self.fill, self.empty, self.closing
+        )
     }
 }

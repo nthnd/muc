@@ -23,15 +23,21 @@ pub fn print(data: CommandMap, args: Args) {
         let (s, _o, h) = elem;
         let mut sub_commands = h.iter().collect::<Vec<(&String, &usize)>>();
         sub_commands.sort_by(|a, b| b.1.cmp(a.1));
-        let sub_commands = sub_commands[..(usize::min(3, sub_commands.len()))]
-            .iter()
-            .map(|x| x.0.to_owned())
-            .collect();
 
-        print_command(s, *freq, max, total, &args, Some(sub_commands));
+        let sub_commands = if sub_commands.is_empty() {
+            None
+        } else {
+            Some( 
+                sub_commands[..(usize::min(3, sub_commands.len()))]
+                .iter()
+                .map(|x| x.0.to_owned())
+                .collect()
+            )
+        };
+
+        print_command(s, *freq, max, total, &args, sub_commands);
     }
 }
-
 
 pub fn print_command(
     command: &str,
@@ -42,13 +48,10 @@ pub fn print_command(
     sub_commands: Option<Vec<String>>,
 ) {
     let percentage = invocations as f32 / total as f32;
-    let num_of_bars =  ((invocations as f32 / max as f32) * 10.) as usize ;
+    let num_of_bars = ((invocations as f32 / max as f32) * 10.) as usize;
     let bars = args.bar.fill.repeat(num_of_bars);
     let empties = args.bar.empty.repeat(10 - num_of_bars);
-    let bar: String = format!(
-        "{}{}",
-        bars, empties
-    );
+    let bar: String = format!("{}{}", bars, empties);
     let pretty_sub_commands = if let Some(sub_commands) = sub_commands {
         let trim_len = sub_commands.len().min(3);
         let mut x = sub_commands[..trim_len].join(", ");
