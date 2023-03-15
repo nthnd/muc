@@ -1,10 +1,10 @@
 use crossterm::{
-    execute,
-    style::{Color, Print, ResetColor, SetForegroundColor, SetAttribute, Attribute},
+    execute, queue,
+    style::{Color, Print, PrintStyledContent, ResetColor, SetForegroundColor, Stylize},
 };
 use std::{
     collections::{BTreeMap, HashMap},
-    io::stdout,
+    io::{stdout, Stdout, Write},
     usize,
 };
 use utf8_slice::slice;
@@ -28,6 +28,8 @@ pub fn print(data: CommandMap, args: Args) {
     let reversed_tree: Vec<(usize, VeryComplexType)> = tree.into_iter().rev().collect();
     let limited_tree = reversed_tree[..(usize::min(args.count, reversed_tree.len()))].to_vec();
 
+    let mut stdout = stdout();
+
     for (freq, elem) in limited_tree.iter() {
         let (s, _o, h) = elem;
         let mut sub_commands = h.iter().collect::<Vec<(&String, &usize)>>();
@@ -44,22 +46,25 @@ pub fn print(data: CommandMap, args: Args) {
             )
         };
 
-        print_command(s, *freq, max, total, &args, sub_commands);
+        print_command(s, *freq, max, total, &args, sub_commands, &mut stdout);
     }
+
+    stdout.flush().unwrap();
 
     let others = total - limited_tree.iter().fold(0, |acc, x| acc + x.0);
     let other_percentage = (others as f64 / total as f64) * 100.;
     execute! {
-        stdout(),
+        stdout,
         SetForegroundColor(Color::Grey),
         Print(format!("...{} ({:.2}%) others\n", others, other_percentage)),
         ResetColor,
-    }.unwrap();
+    }
+    .unwrap();
     execute! {
-        stdout(),
+        stdout,
         Print(format!("Total: {} commands\n", total))
-
-    }.unwrap();
+    }
+    .unwrap();
 }
 
 pub fn print_command(
@@ -69,6 +74,7 @@ pub fn print_command(
     total: usize,
     args: &Args,
     sub_commands: Option<Vec<String>>,
+    stdout: &mut Stdout,
 ) {
     let percentage = (invocations as f32 / total as f32) * 100.0;
     let num_of_bars = ((invocations as f32 / max as f32) * 10.) as usize;
@@ -78,53 +84,24 @@ pub fn print_command(
         args.bar.empty.repeat(10 - num_of_bars)
     );
     let pretty_sub_commands = if let Some(sub_commands) = sub_commands {
-        let trim_len = sub_commands.len().min(3);
-        let mut x = sub_commands[..trim_len].join(", ");
-        x.push_str(" ...");
-        x
+        format!("{} ...", sub_commands[..(sub_commands.len().min(3))].join(", "))
     } else {
         "".to_string()
     };
 
-    let opening_char = &args.bar.opening;
-    let bar_first = slice(&bar, 0, 2);
-    let bar_second = slice(&bar, 2, 5);
-    let bar_third = slice(&bar, 5, 10);
-    let closing_char = &args.bar.closing;
-
-    execute! ( 
-        stdout(),
-
+    queue!(
+        stdout,
         SetForegroundColor(Color::Reset),
-        Print(format!("{}", opening_char)),
-
-        SetForegroundColor(Color::Red),
-        Print(format!("{: <2}", bar_first)),
-
-        SetForegroundColor(Color::Yellow),
-        Print(format!("{: <3}", bar_second)),
-
-        SetForegroundColor(Color::Green),
-        Print(format!("{: <5}", bar_third)),
-
-        SetForegroundColor(Color::Reset),
-        Print(format!("{} ", closing_char)),
-
+        Print(&args.bar.opening),
+        PrintStyledContent(format!("{: <2}", slice(&bar, 0, 2)).red()),
+        PrintStyledContent(format!("{: <3}", slice(&bar, 2, 5)).yellow()),
+        PrintStyledContent(format!("{: <5}", slice(&bar, 5, 10)).green()),
+        PrintStyledContent(format!("{} ", args.bar.closing).reset()),
         Print(format!("{: >5.2}% ", percentage)),
-
-        SetForegroundColor(Color::Grey),
-        Print(format!("{:5}", invocations)),
-
+        PrintStyledContent(format!("{:5}", invocations).grey()),
+        PrintStyledContent(format!(" {} ", command).reset().bold()),
+        PrintStyledContent(format!("{}\n", pretty_sub_commands).reset().grey()),
         SetForegroundColor(Color::Reset),
-
-        SetAttribute(Attribute::Bold),
-        Print(format!(" {} ", command)),
-
-        SetAttribute(Attribute::Reset),
-
-        SetForegroundColor(Color::Grey),
-        Print(format!("{}\n", pretty_sub_commands)),
-
-        SetForegroundColor(Color::Reset),
-    ).unwrap();
+    )
+    .unwrap();
 }

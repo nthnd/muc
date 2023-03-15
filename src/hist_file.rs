@@ -1,10 +1,12 @@
 use crate::Args;
 use crossterm::execute;
-use crossterm::style::{SetForegroundColor, Color, SetAttribute, Attribute, Print};
+use crossterm::style::{Attribute, PrintStyledContent, SetAttribute, Stylize};
 use regex::Regex;
-use std::io::stdout;
 use std::collections::HashMap;
+use std::io::stdout;
 use std::io::{BufRead, BufReader};
+
+pub(crate) type CommandMap = HashMap<String, (usize, Option<bool>, HashMap<String, usize>)>;
 
 pub fn get_contents(hist_file: std::fs::File, args: &Args) -> String {
     let reader = BufReader::new(hist_file);
@@ -17,13 +19,9 @@ pub fn get_contents(hist_file: std::fs::File, args: &Args) -> String {
         } else if args.debug {
             execute!{
                 stdout(),
-
-                SetForegroundColor(Color::Yellow),
-                SetAttribute(Attribute::Bold),
-                Print(format!("[Error] Could not read line : {index} = {line:#?}\n")),
+                PrintStyledContent(format!("[Error] Could not read line : {index} = {line:#?}\n").yellow().bold()),
                 SetAttribute(Attribute::Reset),
             }.unwrap();
-
         }
     }
 
@@ -83,7 +81,6 @@ pub fn parse_contents(contents: String, args: &Args) -> Vec<String> {
     unquoted_lines.flat_map(get_commands).collect()
 }
 
-pub(crate) type CommandMap = HashMap<String, (usize, Option<bool>, HashMap<String, usize>)>;
 
 pub fn process_lines(lines: Vec<String>, _args: &Args) -> CommandMap {
     let leaders = ["sudo", "doas"];
