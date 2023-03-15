@@ -17,7 +17,7 @@ You can use the outputs provided by the `flake.nix` inside this repository to in
 
 To quicky run muc use following command.
 ```sh
-nix run github:nate-sys/muc -- --file $HISTFILE --count 10 --pretty
+nix run github:nate-sys/muc 
 ```
 
 #### Other distros
@@ -28,18 +28,18 @@ cargo install --git=https://github.com/nate-sys/muc
 
 ### Running
 
+muc uses your $HISTFILE environment variable to get your history
 ```sh
-muc --file $HISTFILE --count 10 --pretty                    # Bash
-muc --file $HISTFILE --count 10 --pretty --shell="zsh"      # Zsh
-muc --file $HISTFILE --count 10 --pretty --shell="fish"     # Fish
+muc # Bash or Vanilla zsh
+muc --shell ohmyzsh # ohmyzsh
+muc --shell fish # Fish
+muc --regexp <some regex> # parse the histfile yourself (this overrides shell)
 
-muc --file $HISTFILE\
-        --count 10\
-        --pretty\
-        --bar '*'\
-        --bar-open '('\
-        --bar-close ')'                                     # (******    ) 
-```
+muc -c 5 # show top 5 instead of the default 10
+
+muc --bar "=,*,-,=" # change the appearance of the bar =*****-----=
+``` 
+
 
 ### Roadmap
 - [X] Colors
