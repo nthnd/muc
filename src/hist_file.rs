@@ -4,15 +4,6 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
 
-fn print_warning(warning: &str) {
-    println!(
-        "{yellow}{bold}[Error]{reset} {warning}",
-        yellow = Color::Fg(ColorName::Yellow),
-        bold = Format::Bold,
-        reset = aecir::style::reset_all()
-    );
-}
-
 pub fn get_contents(hist_file: std::fs::File, args: &Args) -> String {
     let reader = BufReader::new(hist_file);
     let mut contents = String::new();
@@ -22,7 +13,13 @@ pub fn get_contents(hist_file: std::fs::File, args: &Args) -> String {
             contents.push_str(&line);
             contents.push('\n');
         } else if args.debug {
-            print_warning(&format!("Could not read line : {index} = {line:#?}"));
+            println!(
+                "{yellow}{bold}[Error]{reset} {warning}",
+                warning =  &format!("Could not read line : {index} = {line:#?}"),
+                yellow = Color::Fg(ColorName::Yellow),
+                bold = Format::Bold,
+                reset = aecir::style::reset_all()
+            );
         }
     }
 
@@ -38,36 +35,47 @@ fn get_commands(line: String) -> Vec<String> {
 
 /// Takes contents of a file and returns a vector of valid commands
 pub fn parse_contents(contents: String, args: &Args) -> Vec<String> {
-    let lines = contents
+    let mut lines: Vec<String> = contents
         .lines()
         .filter(|line| !line.is_empty())
-        .map(str::trim);
+        .map(str::trim)
+        .map(str::to_string)
+        .collect();
 
-    fn bash_strat(line: &str) -> &str {
-        line
-    }
+    let shell_strat = match args.shell.as_str() {
+        "fish" => |line: String| -> String {
+            if line.starts_with("when: ") {
+                "".to_owned()
+            } else {
+                line[7..].to_owned()
+            }
+        },
+        "ohmyzsh" => |line: String| -> String { line[7..].to_owned() },
+        _ => |line: String| -> String { line },
+    };
 
-    fn fish_strat(line: &str) -> &str {
-        if line.starts_with("when: ") {
-            ""
+    let regex_strat = |line: String, re: Regex| -> String {
+        if let Some(cap) = re.captures(&line) {
+            cap[0].to_owned()
         } else {
-            &line[7..]
+            String::new()
         }
-    }
+    };
 
-    fn ohmyzsh_strat(line: &str) -> &str {
-        &line[7..]
-    }
-
-    let shell_parsed = lines.map(match args.shell.as_str() {
-        "fish" => fish_strat,
-        "ohmyzsh" => ohmyzsh_strat,
-        _ => bash_strat,
-    });
+    if args.regexp.is_empty() {
+        lines = lines.into_iter().map(shell_strat).collect();
+    } else {
+        let re = Regex::new(&args.regexp).unwrap();
+        lines = lines
+            .into_iter()
+            .map(move |line| regex_strat(line, re.clone()))
+            .collect();
+    };
 
     let reg = Regex::new("('(?:.|[^'\n])*'|\"(?:.|[^\"\n])*\")").unwrap();
-
-    let unquoted_lines = shell_parsed.map(|line| reg.replace_all(line, "").to_string());
+    let unquoted_lines = lines
+        .into_iter()
+        .map(|line| reg.replace_all(&line, "").to_string());
     unquoted_lines.flat_map(get_commands).collect()
 }
 

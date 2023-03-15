@@ -15,6 +15,10 @@ pub fn print(data: CommandMap, args: Args) {
         .collect();
 
     let total: usize = tree.keys().sum();
+    if total == 0 {
+       println!("No commands found");
+       return;
+    }
     let max = *tree.last_key_value().unwrap().0;
 
     let reversed_tree: Vec<(usize, VeryComplexType)> = tree.into_iter().rev().collect();

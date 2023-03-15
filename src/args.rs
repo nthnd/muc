@@ -17,13 +17,14 @@ pub struct Args {
     #[arg(long, default_value_t = Default::default())]
     pub bar: Bar,
 
-    /// Regular expression to allow for the removal of prefixes in shells like zsh. Default value is for zsh. NOTE: shell overrides this argument
-    #[arg(short, long, default_value_t = String::from(""))]
-    pub regexp: String,
 
     /// Preset regular expressions for common shells: Bash, ZSH, Fish.
     #[arg(long, default_value_t = String::from(""))]
     pub shell: String,
+    
+    /// Regular expression to allow for the removal of prefixes in shells like zsh. Default value is for zsh. NOTE: overrides the shell arg
+    #[arg(short, long, default_value_t = String::from(""))]
+    pub regexp: String,
 }
 
 #[derive(Debug, Clone)]
