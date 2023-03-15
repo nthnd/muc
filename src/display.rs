@@ -1,11 +1,15 @@
+use crossterm::{
+    execute,
+    style::{Color, Print, ResetColor, SetForegroundColor, SetAttribute, Attribute},
+};
 use std::{
     collections::{BTreeMap, HashMap},
+    io::stdout,
     usize,
 };
 use utf8_slice::slice;
 
 use crate::{hist_file::CommandMap, Args};
-use aecir::style::{Color, ColorName, Format};
 
 type VeryComplexType = (String, Option<bool>, HashMap<String, usize>);
 pub fn print(data: CommandMap, args: Args) {
@@ -16,8 +20,8 @@ pub fn print(data: CommandMap, args: Args) {
 
     let total: usize = tree.keys().sum();
     if total == 0 {
-       println!("No commands found");
-       return;
+        println!("No commands found");
+        return;
     }
     let max = *tree.last_key_value().unwrap().0;
 
@@ -45,17 +49,17 @@ pub fn print(data: CommandMap, args: Args) {
 
     let others = total - limited_tree.iter().fold(0, |acc, x| acc + x.0);
     let other_percentage = (others as f64 / total as f64) * 100.;
-    println!(
-        "{gray}... {} ({:.2}%) others{reset}",
-        others,
-        other_percentage,
-        reset = aecir::style::reset_all(),
-        gray = Color::Fg(ColorName::LightBlack),
-    );
-    println!(
-        "Total: {} commands" ,
-        total
-    );
+    execute! {
+        stdout(),
+        SetForegroundColor(Color::Grey),
+        Print(format!("...{} ({:.2}%) others\n", others, other_percentage)),
+        ResetColor,
+    }.unwrap();
+    execute! {
+        stdout(),
+        Print(format!("Total: {} commands\n", total))
+
+    }.unwrap();
 }
 
 pub fn print_command(
@@ -88,19 +92,39 @@ pub fn print_command(
     let bar_third = slice(&bar, 5, 10);
     let closing_char = &args.bar.closing;
 
-    let reset_style = aecir::style::reset_all();
+    execute! ( 
+        stdout(),
 
-    let (red, yellow, green, gray, bold) = (
-        Color::Fg(ColorName::Red).to_string(),
-        Color::Fg(ColorName::Yellow).to_string(),
-        Color::Fg(ColorName::Green).to_string(),
-        Color::Fg(ColorName::LightBlack).to_string(),
-        Format::Bold.to_string(),
-    );
+        SetForegroundColor(Color::Reset),
+        Print(format!("{}", opening_char)),
 
-    println!(
-        "{opening_char}{red}{bar_first: <2}{yellow}{bar_second: <3}{green}{bar_third: <5}{reset_style}{closing_char} \
-        {percentage: >5.2}% {gray}{invocations:5}{reset_style}\
-        {bold} {command} {reset_style}{gray}{pretty_sub_commands} {reset_style}",
-    );
+        SetForegroundColor(Color::Red),
+        Print(format!("{: <2}", bar_first)),
+
+        SetForegroundColor(Color::Yellow),
+        Print(format!("{: <3}", bar_second)),
+
+        SetForegroundColor(Color::Green),
+        Print(format!("{: <5}", bar_third)),
+
+        SetForegroundColor(Color::Reset),
+        Print(format!("{} ", closing_char)),
+
+        Print(format!("{: >5.2}% ", percentage)),
+
+        SetForegroundColor(Color::Grey),
+        Print(format!("{:5}", invocations)),
+
+        SetForegroundColor(Color::Reset),
+
+        SetAttribute(Attribute::Bold),
+        Print(format!(" {} ", command)),
+
+        SetAttribute(Attribute::Reset),
+
+        SetForegroundColor(Color::Grey),
+        Print(format!("{}\n", pretty_sub_commands)),
+
+        SetForegroundColor(Color::Reset),
+    ).unwrap();
 }

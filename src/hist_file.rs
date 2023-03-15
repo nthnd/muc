@@ -1,6 +1,8 @@
 use crate::Args;
-use aecir::style::{Color, ColorName, Format};
+use crossterm::execute;
+use crossterm::style::{SetForegroundColor, Color, SetAttribute, Attribute, Print};
 use regex::Regex;
+use std::io::stdout;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
 
@@ -13,13 +15,15 @@ pub fn get_contents(hist_file: std::fs::File, args: &Args) -> String {
             contents.push_str(&line);
             contents.push('\n');
         } else if args.debug {
-            println!(
-                "{yellow}{bold}[Error]{reset} {warning}",
-                warning =  &format!("Could not read line : {index} = {line:#?}"),
-                yellow = Color::Fg(ColorName::Yellow),
-                bold = Format::Bold,
-                reset = aecir::style::reset_all()
-            );
+            execute!{
+                stdout(),
+
+                SetForegroundColor(Color::Yellow),
+                SetAttribute(Attribute::Bold),
+                Print(format!("[Error] Could not read line : {index} = {line:#?}\n")),
+                SetAttribute(Attribute::Reset),
+            }.unwrap();
+
         }
     }
 
