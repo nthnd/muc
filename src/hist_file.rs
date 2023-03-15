@@ -1,8 +1,12 @@
 use crate::Args;
-use aecir::style::{Color, ColorName, Format};
+use crossterm::execute;
+use crossterm::style::{Attribute, PrintStyledContent, SetAttribute, Stylize};
 use regex::Regex;
 use std::collections::HashMap;
+use std::io::stdout;
 use std::io::{BufRead, BufReader};
+
+pub(crate) type CommandMap = HashMap<String, (usize, Option<bool>, HashMap<String, usize>)>;
 
 pub fn get_contents(hist_file: std::fs::File, args: &Args) -> String {
     let reader = BufReader::new(hist_file);
@@ -13,13 +17,11 @@ pub fn get_contents(hist_file: std::fs::File, args: &Args) -> String {
             contents.push_str(&line);
             contents.push('\n');
         } else if args.debug {
-            println!(
-                "{yellow}{bold}[Error]{reset} {warning}",
-                warning =  &format!("Could not read line : {index} = {line:#?}"),
-                yellow = Color::Fg(ColorName::Yellow),
-                bold = Format::Bold,
-                reset = aecir::style::reset_all()
-            );
+            execute!{
+                stdout(),
+                PrintStyledContent(format!("[Error] Could not read line : {index} = {line:#?}\n").yellow().bold()),
+                SetAttribute(Attribute::Reset),
+            }.unwrap();
         }
     }
 
@@ -79,7 +81,6 @@ pub fn parse_contents(contents: String, args: &Args) -> Vec<String> {
     unquoted_lines.flat_map(get_commands).collect()
 }
 
-pub(crate) type CommandMap = HashMap<String, (usize, Option<bool>, HashMap<String, usize>)>;
 
 pub fn process_lines(lines: Vec<String>, _args: &Args) -> CommandMap {
     let leaders = ["sudo", "doas"];

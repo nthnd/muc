@@ -1,11 +1,15 @@
+use crossterm::{
+    execute, queue,
+    style::{Color, Print, PrintStyledContent, ResetColor, SetForegroundColor, Stylize},
+};
 use std::{
     collections::{BTreeMap, HashMap},
+    io::{stdout, Stdout, Write},
     usize,
 };
 use utf8_slice::slice;
 
 use crate::{hist_file::CommandMap, Args};
-use aecir::style::{Color, ColorName, Format};
 
 type VeryComplexType = (String, Option<bool>, HashMap<String, usize>);
 pub fn print(data: CommandMap, args: Args) {
@@ -16,13 +20,15 @@ pub fn print(data: CommandMap, args: Args) {
 
     let total: usize = tree.keys().sum();
     if total == 0 {
-       println!("No commands found");
-       return;
+        println!("No commands found");
+        return;
     }
     let max = *tree.last_key_value().unwrap().0;
 
     let reversed_tree: Vec<(usize, VeryComplexType)> = tree.into_iter().rev().collect();
     let limited_tree = reversed_tree[..(usize::min(args.count, reversed_tree.len()))].to_vec();
+
+    let mut stdout = stdout();
 
     for (freq, elem) in limited_tree.iter() {
         let (s, _o, h) = elem;
@@ -40,22 +46,25 @@ pub fn print(data: CommandMap, args: Args) {
             )
         };
 
-        print_command(s, *freq, max, total, &args, sub_commands);
+        print_command(s, *freq, max, total, &args, sub_commands, &mut stdout);
     }
+
+    stdout.flush().unwrap();
 
     let others = total - limited_tree.iter().fold(0, |acc, x| acc + x.0);
     let other_percentage = (others as f64 / total as f64) * 100.;
-    println!(
-        "{gray}... {} ({:.2}%) others{reset}",
-        others,
-        other_percentage,
-        reset = aecir::style::reset_all(),
-        gray = Color::Fg(ColorName::LightBlack),
-    );
-    println!(
-        "Total: {} commands" ,
-        total
-    );
+    execute! {
+        stdout,
+        SetForegroundColor(Color::Grey),
+        Print(format!("...{} ({:.2}%) others\n", others, other_percentage)),
+        ResetColor,
+    }
+    .unwrap();
+    execute! {
+        stdout,
+        Print(format!("Total: {} commands\n", total))
+    }
+    .unwrap();
 }
 
 pub fn print_command(
@@ -65,6 +74,7 @@ pub fn print_command(
     total: usize,
     args: &Args,
     sub_commands: Option<Vec<String>>,
+    stdout: &mut Stdout,
 ) {
     let percentage = (invocations as f32 / total as f32) * 100.0;
     let num_of_bars = ((invocations as f32 / max as f32) * 10.) as usize;
@@ -74,33 +84,24 @@ pub fn print_command(
         args.bar.empty.repeat(10 - num_of_bars)
     );
     let pretty_sub_commands = if let Some(sub_commands) = sub_commands {
-        let trim_len = sub_commands.len().min(3);
-        let mut x = sub_commands[..trim_len].join(", ");
-        x.push_str(" ...");
-        x
+        format!("{} ...", sub_commands[..(sub_commands.len().min(3))].join(", "))
     } else {
         "".to_string()
     };
 
-    let opening_char = &args.bar.opening;
-    let bar_first = slice(&bar, 0, 2);
-    let bar_second = slice(&bar, 2, 5);
-    let bar_third = slice(&bar, 5, 10);
-    let closing_char = &args.bar.closing;
-
-    let reset_style = aecir::style::reset_all();
-
-    let (red, yellow, green, gray, bold) = (
-        Color::Fg(ColorName::Red).to_string(),
-        Color::Fg(ColorName::Yellow).to_string(),
-        Color::Fg(ColorName::Green).to_string(),
-        Color::Fg(ColorName::LightBlack).to_string(),
-        Format::Bold.to_string(),
-    );
-
-    println!(
-        "{opening_char}{red}{bar_first: <2}{yellow}{bar_second: <3}{green}{bar_third: <5}{reset_style}{closing_char} \
-        {percentage: >5.2}% {gray}{invocations:5}{reset_style}\
-        {bold} {command} {reset_style}{gray}{pretty_sub_commands} {reset_style}",
-    );
+    queue!(
+        stdout,
+        SetForegroundColor(Color::Reset),
+        Print(&args.bar.opening),
+        PrintStyledContent(format!("{: <2}", slice(&bar, 0, 2)).red()),
+        PrintStyledContent(format!("{: <3}", slice(&bar, 2, 5)).yellow()),
+        PrintStyledContent(format!("{: <5}", slice(&bar, 5, 10)).green()),
+        PrintStyledContent(format!("{} ", args.bar.closing).reset()),
+        Print(format!("{: >5.2}% ", percentage)),
+        PrintStyledContent(format!("{:5}", invocations).grey()),
+        PrintStyledContent(format!(" {} ", command).reset().bold()),
+        PrintStyledContent(format!("{}\n", pretty_sub_commands).reset().grey()),
+        SetForegroundColor(Color::Reset),
+    )
+    .unwrap();
 }

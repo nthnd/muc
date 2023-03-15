@@ -5,6 +5,6 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.0.32", features = ["derive"] }
-aecir = { git = "https://github.com/nate-sys/aecir", branch = "main"}
 utf8_slice = "1.0.0"
 regex = "1.7.0"
+crossterm = "0.26.1"
