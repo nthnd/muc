@@ -1,22 +1,11 @@
 use crate::Args;
 use aecir::style::{Color, ColorName, Format};
+use regex::Regex;
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader};
-use regex::Regex;
 
-fn print_warning(warning: &str) {
-    println!(
-        "{yellow}{bold}[Error]{reset} {warning}",
-        yellow = Color::Fg(ColorName::Yellow),
-        bold = Format::Bold,
-        reset = aecir::style::reset_all()
-    );
-}
-
-pub fn get_contents(args: &Args) -> String {
-    let histfile_buffer = std::fs::File::open(&args.file).expect("Couldn't find histfile");
-
-    let reader = BufReader::new(histfile_buffer);
+pub fn get_contents(hist_file: std::fs::File, args: &Args) -> String {
+    let reader = BufReader::new(hist_file);
     let mut contents = String::new();
 
     for (index, line) in reader.lines().enumerate() {
@@ -24,160 +13,116 @@ pub fn get_contents(args: &Args) -> String {
             contents.push_str(&line);
             contents.push('\n');
         } else if args.debug {
-            print_warning(&format!("Could not read line : {index} = {line:#?}"));
+            println!(
+                "{yellow}{bold}[Error]{reset} {warning}",
+                warning =  &format!("Could not read line : {index} = {line:#?}"),
+                yellow = Color::Fg(ColorName::Yellow),
+                bold = Format::Bold,
+                reset = aecir::style::reset_all()
+            );
         }
     }
 
     contents
 }
 
-/// Find the index of the first occurrence of `target` but takes into account
-/// escaping made with back slashes.
-fn find_unescaped(contents: &[char], target: char) -> Option<usize> {
-    let mut index = 0;
-    let mut escaped = false;
-    for &c in contents {
-        index += 1;
-        if escaped {
-            escaped = false;
-        } else if c == '\\' {
-            escaped = true;
-        } else if c == target {
-            return Some(index-1);
-        }
-    }
-    None
+fn get_commands(line: String) -> Vec<String> {
+    line.split(&['&', '|', ';'])
+        .filter(|x| !x.is_empty())
+        .map(str::to_string)
+        .collect()
 }
 
-/// Removes all quotes strings put in between the given delimiters.
-/// For example:
-/// ```
-/// remove_quoted_strings(Hi "Mike \" Ventury"!) => Hi!
-/// ```
-fn remove_quoted_strings(contents: String, delimiter: char) -> String {
+/// Takes contents of a file and returns a vector of valid commands
+pub fn parse_contents(contents: String, args: &Args) -> Vec<String> {
+    let mut lines: Vec<String> = contents
+        .lines()
+        .filter(|line| !line.is_empty())
+        .map(str::trim)
+        .map(str::to_string)
+        .collect();
 
-    fn _remove_quoted_strings<'a>(contents: &'a[char], delimiter: char, slices: &mut Vec<&'a [char]>) {
-        if let Some(first_match) = find_unescaped(&contents, delimiter) {
-            let ret = &contents[0..first_match];
-            slices.push(ret);
-            if let Some(second_match) = find_unescaped(&contents[first_match+1..], delimiter) {
-                let rest = &contents[first_match+second_match+2..];
-                _remove_quoted_strings(rest, delimiter, slices);
+    let shell_strat = match args.shell.as_str() {
+        "fish" => |line: String| -> String {
+            if line.starts_with("when: ") {
+                "".to_owned()
             } else {
-                slices.push(&contents[first_match+1..]);
+                line[7..].to_owned()
             }
-        } else {
-            slices.push(&contents);
-        }
-    }
-
-    let mut all_matches: Vec<&[char]> = vec![];
-    let contents_ca: Vec<char> = contents.chars().collect();
-    _remove_quoted_strings(&contents_ca, delimiter, &mut all_matches);
-
-    let mut concat: Vec<char> = vec![];
-    for slice in all_matches {
-        concat.extend_from_slice(slice);
-    }
-    concat.iter().collect()
-}
-
-/// Removes all quotes strings from the input
-fn remove_all_quotes(contents: &str) -> String {
-    remove_quoted_strings(
-        remove_quoted_strings(
-            remove_quoted_strings(contents.to_string(), '`'),
-            '"'),
-            '\'')
-}
-
-pub fn parse_contents(contents: String, args: &Args) 
-    -> ( HashMap<String, usize>, HashMap<String, Vec<String>> ) {
-    let separators: Vec<char> = args.separators.chars().collect();
-    let mut only_prefix = "".to_string();
-
-    let prefix = match &args.prefix {
-        Some(pfx) => pfx,
-        None => match args.shell.as_str() {
-            "fish" => "- cmd: ",
-            _ => "",
         },
+        "ohmyzsh" => |line: String| -> String { line[7..].to_owned() },
+        _ => |line: String| -> String { line },
     };
 
-    for line in contents.split('\n') {
-        only_prefix.push_str(match prefix {
-            "" => line,
-            pfx => {
-                if line.starts_with(pfx) {
-                    &line[pfx.len()..]
-                } else {
-                    ""
-                }
-            },
-        });
-        only_prefix.push('\n');
-    }
-
-    let mut unquoted = remove_all_quotes(&only_prefix);
-
-
-    let regexp = match args.shell.to_lowercase().as_str() {
-        "bash" => "",
-        "zsh" => r": \d\d\d\d\d\d\d\d\d\d:\d;",
-        "fish" => match &args.prefix {
-            Some(_pfx) =>"- cmd: ",
-            None => "", // If no prefix had been given, the default prefix already deleted the "- cmd: "s
+    let regex_strat = |line: String, re: Regex| -> String {
+        if let Some(cap) = re.captures(&line) {
+            cap[0].to_owned()
+        } else {
+            String::new()
         }
-        _ => args.regexp.as_str(),
     };
 
-    let reg = Regex::new(regexp).unwrap();
-    unquoted = reg.replace_all(&unquoted, "").to_string();
+    if args.regexp.is_empty() {
+        lines = lines.into_iter().map(shell_strat).collect();
+    } else {
+        let re = Regex::new(&args.regexp).unwrap();
+        lines = lines
+            .into_iter()
+            .map(move |line| regex_strat(line, re.clone()))
+            .collect();
+    };
 
-
-    let command_lines: Vec<&str> = unquoted
-        .split(&*separators)
-        .filter(|x| !x.is_empty()).collect();
-
-    let mut commands: Vec<&str> = Vec::new();
-    let mut sub_commands: HashMap<String, Vec<String>> = HashMap::new();
-
-    for command in command_lines.iter() {
-        let mut words = command.split_whitespace();
-        if let Some(first_word) = words.next() {
-            // true means ignore the sub command
-            let leaders = vec![
-                ( "sudo", false ),
-                ( "watch", false ),
-                ( "git", true),
-                ( "cargo", true ),
-            ];
-            commands.push(first_word);
-            leaders.iter().for_each(|(leader, should_ignore)| {
-                if leader == &first_word {
-                    if let Some(second_word) = words.next() {
-                        if !should_ignore { commands.push(second_word) }
-                        sub_commands.entry(first_word.into()).and_modify(|arr| {
-                            if !arr.contains(&second_word.to_owned()){
-                                arr.push(second_word.into());
-                            }
-                        }).or_insert_with(|| vec![second_word.into()]);
-                    }
-                }
-
-            });
-        }
-        else if args.debug {
-                print_warning("Error while parsing command");
-        }
-    }
-
-    let mut with_frequencies = HashMap::new();
-
-    for command in commands.into_iter() {
-        *with_frequencies.entry(command.into()).or_insert(0) += 1;
-    }
-
-    (with_frequencies, sub_commands)
+    let reg = Regex::new("('(?:.|[^'\n])*'|\"(?:.|[^\"\n])*\")").unwrap();
+    let unquoted_lines = lines
+        .into_iter()
+        .map(|line| reg.replace_all(&line, "").to_string());
+    unquoted_lines.flat_map(get_commands).collect()
 }
 
+pub(crate) type CommandMap = HashMap<String, (usize, Option<bool>, HashMap<String, usize>)>;
+
+pub fn process_lines(lines: Vec<String>, _args: &Args) -> CommandMap {
+    let leaders = ["sudo", "doas"];
+    let super_commands = ["git", "entr", "time"];
+
+    let mut output: CommandMap = HashMap::new();
+
+    for line in lines.into_iter() {
+        let words = line.split_whitespace().collect::<Vec<&str>>();
+
+        let (first, second) = (words.first().unwrap().to_string(), words.get(1));
+
+        output
+            .entry(first.clone())
+            .or_insert((0, None, HashMap::new()))
+            .0 += 1;
+
+        if let Some(second) = second {
+            let mut parent_entry = output.get_mut(&first).unwrap();
+
+            if parent_entry.1.is_some() {
+                *parent_entry.2.entry(second.to_string()).or_insert(0) += 1;
+            }
+
+            if leaders.contains(&first.as_str()) {
+                parent_entry.1 = Some(true);
+                output
+                    .entry((*second).to_string())
+                    .or_insert((0, None, HashMap::new()))
+                    .0 += 1;
+            } else if super_commands.contains(&first.as_str()) {
+                parent_entry.1 = Some(false);
+            }
+        }
+    }
+    output
+}
+
+#[cfg(test)]
+mod parsing {
+    #[test]
+    #[ignore = "reformat pending ..."]
+    fn tood() {
+        todo!()
+    }
+}
