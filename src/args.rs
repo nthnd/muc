@@ -1,10 +1,14 @@
-use std::str::FromStr;
+use std::{str::FromStr, path::PathBuf};
 
 use clap::Parser;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
+    /// The path to the file to be parsed
+    #[arg(short, long)]
+    pub file: Option<PathBuf>,
+
     /// Display top n commands
     #[arg(short, long, default_value_t = 10)]
     pub count: usize,
