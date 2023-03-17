@@ -1,41 +1,29 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
-
+    naersk.url = "github:nix-community/naersk";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
-  outputs = { self, nixpkgs, flake-utils, flake-compat }: {
-    overlays.default = _: prev:
+  outputs = { self, flake-utils, naersk, nixpkgs }:
+    flake-utils.lib.eachDefaultSystem (system:
       let
-        inherit (prev.rustPlatform) buildRustPackage;
-        toml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
-      in
-      {
-        muc = buildRustPackage {
-          pname = "muc";
-          src = self;
-          inherit (toml.package) version;
-          cargoHash = "sha256-w/b4qps4z1HrtSlSklflU6i1QfSFQw20+uALIpCIk8I=";
+        pkgs = (import nixpkgs) {
+          inherit system;
         };
-      };
-  } //
-  (flake-utils.lib.eachDefaultSystem (system:
-    let
-      pkgs = import nixpkgs {
-        inherit system;
-        overlays = [ self.overlays.default ];
-      };
-      inherit (pkgs) muc;
-    in
-    {
-      packages = {
-        inherit muc;
-        default = muc;
-      };
-    }));
+
+        naersk' = pkgs.callPackage naersk {};
+        
+      in rec {
+        # For `nix build` & `nix run`:
+        defaultPackage = naersk'.buildPackage {
+          src = ./.;
+        };
+
+        # For `nix develop` (optional, can be skipped):
+        devShell = pkgs.mkShell {
+          nativeBuildInputs = with pkgs; [ rustc cargo ];
+        };
+      }
+    );
 }
