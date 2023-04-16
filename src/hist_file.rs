@@ -52,7 +52,7 @@ pub fn parse_contents(contents: String, args: &Args) -> Vec<String> {
                 line[7..].to_owned()
             }
         },
-        "ohmyzsh" => |line: String| -> String { line[7..].to_owned() },
+        "ohmyzsh" => |line: String| -> String { line[line.find(';').unwrap_or(0)..].to_owned() },
         _ => |line: String| -> String { line },
     };
 
@@ -80,7 +80,6 @@ pub fn parse_contents(contents: String, args: &Args) -> Vec<String> {
         .map(|line| reg.replace_all(&line, "").to_string());
     unquoted_lines.flat_map(get_commands).collect()
 }
-
 
 pub fn process_lines(lines: Vec<String>, _args: &Args) -> CommandMap {
     let leaders = ["sudo", "doas"];
