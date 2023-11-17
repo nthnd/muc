@@ -85,7 +85,11 @@ pub fn process_lines(lines: Vec<String>, _args: &Args) -> CommandMap {
 
     for line in lines.into_iter() {
         let words = line.split_whitespace().collect::<Vec<&str>>();
-
+        
+        if words.len() == 0 {
+            continue;
+        }
+        
         let (first, second) = (words.first().unwrap().to_string(), words.get(1));
 
         output
